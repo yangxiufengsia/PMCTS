@@ -10,21 +10,12 @@ import itertools
 import math
 import tensorflow as tf
 import argparse
-import subprocess
 from load_model import loaded_model
 from keras.preprocessing import sequence
-from rdkit import Chem
-from rdkit.Chem import Draw
-from rdkit.Chem import Descriptors
-from rdkit.Chem import MolFromSmiles, MolToSmiles
 import sys
 from threading import Thread, Lock, RLock
 from queue import *
 from mpi4py import MPI
-import sascorer
-#import pickle
-import gzip
-import networkx as nx
 from rdkit.Chem import rdmolops
 from collections import deque
 from random import randint
@@ -138,16 +129,13 @@ def H_MCTS(chem_model):
                                 childnode = node.selection()
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(childnode.state)
-                                comm.bsend(
-                                    np.asarray(
-                                        [
-                                            childnode.state,
-                                            childnode.reward,
-                                            childnode.wins,
-                                            childnode.visits,
-                                            childnode.num_thread_visited]),
-                                            dest=dest,
-                                            tag=tag=JobType.SEARCH.value)
+                                comm.bsend(np.asarray([childnode.state,
+                                                       childnode.reward,
+                                                       childnode.wins,
+                                                       childnode.visits,
+                                                       childnode.num_thread_visited]),
+                                                       dest=dest,
+                                                       tag=tag=JobType.SEARCH.value)
                         else:
                             node.num_thread_visited = message[4]
                             if len(node.state) < 81:
@@ -157,7 +145,8 @@ def H_MCTS(chem_model):
                                         n = node.addnode(m)
                                         hsm.insert(Item(node.state, node))
                                         _, dest = hsm.hashing(n.state)
-                                        comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
+                                        comm.bsend(np.asarray([n.state,
+                                                               n.reward, n.wins, n.visits,
                                                                n.num_thread_visited]),
                                                                dest=dest, tag=JobType.SEARCH.value)
                                     else:
@@ -167,20 +156,20 @@ def H_MCTS(chem_model):
                                             n = node.addnode(node, m)
                                             hsm.insert(Item(node.state, node))
                                             _, dest = hsm.hashing(n.state)
-                                            comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
+                                            comm.bsend(np.asarray([n.state,
+                                                                   n.reward, n.wins, n.visits,
                                                                    n.num_thread_visited]),
                                                                    dest=dest, tag=JobType.SEARCH.value)
                                         else:
                                             childnode = node.selection()
                                             hsm.insert(Item(node.state, node))
                                             _, dest = hsm.hashing(childnode.state)
-                                            comm.bsend(np.asarray(
-                                                    [childnode.state,
-                                                    childnode.reward,
-                                                    childnode.wins,
-                                                    childnode.visits,
-                                                    childnode.num_thread_visited]),
-                                                    dest=dest, tag=JobType.SEARCH.value)
+                                            comm.bsend(np.asarray([childnode.state,
+                                                                   childnode.reward,
+                                                                   childnode.wins,
+                                                                   childnode.visits,
+                                                                   childnode.num_thread_visited]),
+                                                                   dest=dest, tag=JobType.SEARCH.value)
 
                                 else:
                                     score, mol = node.simulation(chem_model, node.state)
@@ -191,15 +180,13 @@ def H_MCTS(chem_model):
                                     node.update_local_node(score)
                                     hsm.insert(Item(node.state, node))
                                     _, dest = hsm.hashing(node.state[0:-1])
-                                    comm.bsend(
-                                        np.asarray(
-                                            [
-                                                node.state,
-                                                node.reward,
-                                                node.wins,
-                                                node.visits,
-                                                node.num_thread_visited]),
-                                                dest=dest, tag=JobType.BACKPROPAGATION.value)
+                                    comm.bsend(np.asarray([node.state,
+                                                           node.reward,
+                                                           node.wins,
+                                                           node.visits,
+                                                           node.num_thread_visited]),
+                                                           dest=dest, tag=JobType.BACKPROPAGATION.value)
+
                             else:
                                 score = -1
                                 node.update_local_node(score)  # backpropagation on local memory
@@ -226,8 +213,8 @@ def H_MCTS(chem_model):
                                                local_node.wins,
                                                local_node.visits,
                                                local_node.num_thread_visited]),
-                                   dest=dest,
-                                   tag=0)
+                                               dest=dest,
+                                               tag=JobType.SEARCH.value)
                     else:
                         local_node = backpropagation(local_node, node)
                         hsm.insert(Item(local_node.state, local_node))
@@ -237,8 +224,8 @@ def H_MCTS(chem_model):
                                                local_node.wins,
                                                local_node.visits,
                                                local_node.num_thread_visited]),
-                                   dest=dest,
-                                   tag=1)
+                                               dest= dest,
+                                               tag = JobType.BACKPROPAGATION.value)
                 elif tag == JobType.TIMEUP.value:
                     timeup = True
 

@@ -5,6 +5,8 @@ from rdkit.Chem import MolFromSmiles, MolToSmiles
 import sascorer
 import gzip
 import networkx as nx
+from rollout import chem_kn_simulation, predict_smile, make_input_smile
+
 class Node:
 
     """
@@ -158,66 +160,3 @@ def backpropagation(pnode, cnode):
             pnode.childNodes[i].num_thread_visited -= 1
             pnode.childNodes[i].visits += 1
     return pnode
-
-
-
-
-"""Sampling molecules in simulation step"""
-def chem_kn_simulation(model, state, val):
-    all_posible = []
-    end = "\n"
-    position = []
-    position.extend(state)
-    total_generated = []
-    new_compound = []
-    get_int_old = []
-    for j in range(len(position)):
-        get_int_old.append(val.index(position[j]))
-    get_int = get_int_old
-    x = np.reshape(get_int, (1, len(get_int)))
-    x_pad = sequence.pad_sequences(x, maxlen=82, dtype='int32',
-                                   padding='post', truncating='pre', value=0.)
-    while not get_int[-1] == val.index(end):
-        predictions = model.predict(x_pad)
-        preds = np.asarray(predictions[0][len(get_int) - 1]).astype('float64')
-        preds = np.log(preds) / 1.0
-        preds = np.exp(preds) / np.sum(np.exp(preds))
-        next_probas = np.random.multinomial(1, preds, 1)
-        next_int = np.argmax(next_probas)
-        get_int.append(next_int)
-        x = np.reshape(get_int, (1, len(get_int)))
-        x_pad = sequence.pad_sequences(
-            x,
-            maxlen=82,
-            dtype='int32',
-            padding='post',
-            truncating='pre',
-            value=0.)
-        if len(get_int) > 82:
-            break
-    total_generated.append(get_int)
-    all_posible.extend(total_generated)
-    return all_posible
-
-
-def predict_smile(all_posible, val):
-    new_compound = []
-    for i in range(len(all_posible)):
-        total_generated = all_posible[i]
-        generate_smile = []
-        for j in range(len(total_generated) - 1):
-            generate_smile.append(val[total_generated[j]])
-        generate_smile.remove("&")
-        new_compound.append(generate_smile)
-    return new_compound
-
-
-def make_input_smile(generate_smile):
-    new_compound = []
-    for i in range(len(generate_smile)):
-        middle = []
-        for j in range(len(generate_smile[i])):
-            middle.append(generate_smile[i][j])
-        com = ''.join(middle)
-        new_compound.append(com)
-    return new_compound

@@ -42,9 +42,7 @@ class JobType(Enum):
     '''
     SEARCH = 0
     BACKPROPAGATION = 1
-    #
     PRIORITY_BORDER = 128
-    #
     TIMEUP = 254
     FINISH = 255
     @classmethod
@@ -64,7 +62,6 @@ def H_MCTS(chem_model):
             temp = deepcopy(root_job_message)
             root_job = (JobType.SEARCH.value, temp)
             jobq.appendleft(root_job)
-
     while not timeup:
         if rank == 0:
             if time.time()-start_time > 600:
@@ -72,167 +69,178 @@ def H_MCTS(chem_model):
                 for dest in range(1, nprocs):
                     dummy_data = tag = JobType.TIMEUP.value
                     comm.bsend(dummy_data, dest=dest, tag=JobType.TIMEUP.value)
+        while True:
+            ret = comm.Iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+            if ret == False:
+                break
+            else:
+                message = comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
+                cur_status = status
+                tag = cur_status.Get_tag()
+                job = (tag, message)
+                if JobType.is_high_priority(tag):
+                    # high priority messages (timeup and finish)
+                    jobq.append(job)
+                else:
+                    # normal messages (search and backpropagate)
+                    jobq.appendleft(job)
 
-    while time.time() - start_time <= 600:
-        ret = comm.Iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-        if ret:
-            message = comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
-            cur_status = status
-            if cur_status.Get_tag() == 0:
-                if hsm.search_table(message[0]) is None:  # if node is not in the hash table
-                    node = Node(state=message[0])
-                    if node.state == ['&']:
-                        node.expansion(chem_model)
-                        m = random.choice(node.expanded_nodes)
-                        n = node.addnode(m)
-                        hsm.insert(Item(node.state, node))
-                        _, dest = hsm.hashing(n.state)
-                        comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
-                                               n.num_thread_visited]), dest=dest, tag=0)
-                    else:
-                        if len(node.state) < 81:
-                            score, mol = node.simulation(chem_model, node.state)
-                            allscore.append(score)
-                            allmol.append(mol)
-                            node.update_local_node(score)  # backpropagation on local memory
-                            hsm.insert(Item(node.state, node))
-                            _, dest = hsm.hashing(node.state[0:-1])
-                            comm.bsend(np.asarray([node.state,
-                                                   node.reward,
-                                                   node.wins,
-                                                   node.visits,
-                                                   node.num_thread_visited]),
-                                        dest=dest,tag=1)
-                        else:
-                            score = -1
-                            node.update_local_node(node, score)  # backpropagation on local memory
-                            hsm.insert(Item(node.state, node))
-                            _, dest = hsm.hashing(node.state[0:-1])
-                            comm.bsend(np.asarray([node.state,
-                                                   node.reward,
-                                                   node.wins,
-                                                   node.visits,
-                                                   node.num_thread_visited]),
-                                                   dest=dest,
-                                                   tag=1)
-
-                else:  # if node already in the local hashtable
-                    node = hsm.search_table(message[0])
-                    if node.state == ['&']:
-                        if node.expanded_nodes != []:
+            jobq_non_empty = bool(jobq)
+            if jobq_non_empty:
+                (tag, message) = jobq.pop()
+                if tag == JobType.SEARCH.value:
+                    if hsm.search_table(message[0]) is None:  # if node is not in the hash table
+                        node = Node(state=message[0])
+                        if node.state == ['&']:
+                            node.expansion(chem_model)
                             m = random.choice(node.expanded_nodes)
                             n = node.addnode(m)
                             hsm.insert(Item(node.state, node))
                             _, dest = hsm.hashing(n.state)
                             comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
-                                                   n.num_thread_visited]), dest=dest, tag=0)
+                                                   n.num_thread_visited]), dest=dest, tag=JobType.SEARCH.value)
                         else:
-                            childnode = node.selection()
-                            hsm.insert(Item(node.state, node))
-                            _, dest = hsm.hashing(childnode.state)
-                            comm.bsend(
-                                np.asarray(
-                                    [
-                                        childnode.state,
-                                        childnode.reward,
-                                        childnode.wins,
-                                        childnode.visits,
-                                        childnode.num_thread_visited]),
-                                        dest=dest,
-                                        tag=0)
-                    else:
-                        node.num_thread_visited = message[4]
-                        if len(node.state) < 81:
-                            if node.state[-1] != '\n':
-                                if node.expanded_nodes != []:
-                                    m = random.choice(node.expanded_nodes)
-                                    n = node.addnode(m)
-                                    hsm.insert(Item(node.state, node))
-                                    _, dest = hsm.hashing(n.state)
-                                    comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
-                                                           n.num_thread_visited]), dest=dest, tag=0)
-                                else:
-                                    if node.check_childnode == []:
-                                        node.expansion(chem_model)
+                            if len(node.state) < 81:
+                                score, mol = node.simulation(chem_model, node.state)
+                                allscore.append(score)
+                                allmol.append(mol)
+                                node.update_local_node(score)  # backpropagation on local memory
+                                hsm.insert(Item(node.state, node))
+                                _, dest = hsm.hashing(node.state[0:-1])
+                                comm.bsend(np.asarray([node.state,
+                                                       node.reward,
+                                                       node.wins,
+                                                       node.visits,
+                                                       node.num_thread_visited]), dest=dest,tag=JobType.BACKPROPAGATION.value)
+                            else:
+                                score = -1
+                                node.update_local_node(node, score)  # backpropagation on local memory
+                                hsm.insert(Item(node.state, node))
+                                _, dest = hsm.hashing(node.state[0:-1])
+                                comm.bsend(np.asarray([node.state,
+                                                       node.reward,
+                                                       node.wins,
+                                                       node.visits,
+                                                       node.num_thread_visited]),
+                                                       dest=dest, tag=JobType.BACKPROPAGATION.value)
+
+                    else:  # if node already in the local hashtable
+                        node = hsm.search_table(message[0])
+                        if node.state == ['&']:
+                            if node.expanded_nodes != []:
+                                m = random.choice(node.expanded_nodes)
+                                n = node.addnode(m)
+                                hsm.insert(Item(node.state, node))
+                                _, dest = hsm.hashing(n.state)
+                                comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
+                                                       n.num_thread_visited]), dest=dest, tag=JobType.SEARCH.value)
+                            else:
+                                childnode = node.selection()
+                                hsm.insert(Item(node.state, node))
+                                _, dest = hsm.hashing(childnode.state)
+                                comm.bsend(
+                                    np.asarray(
+                                        [
+                                            childnode.state,
+                                            childnode.reward,
+                                            childnode.wins,
+                                            childnode.visits,
+                                            childnode.num_thread_visited]),
+                                            dest=dest,
+                                            tag=tag=JobType.SEARCH.value)
+                        else:
+                            node.num_thread_visited = message[4]
+                            if len(node.state) < 81:
+                                if node.state[-1] != '\n':
+                                    if node.expanded_nodes != []:
                                         m = random.choice(node.expanded_nodes)
-                                        n = node.addnode(node, m)
+                                        n = node.addnode(m)
                                         hsm.insert(Item(node.state, node))
                                         _, dest = hsm.hashing(n.state)
                                         comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
-                                                               n.num_thread_visited]), dest=dest, tag=0)
+                                                               n.num_thread_visited]),
+                                                               dest=dest, tag=JobType.SEARCH.value)
                                     else:
-                                        childnode = node.selection()
-                                        hsm.insert(Item(node.state, node))
-                                        _, dest = hsm.hashing(childnode.state)
-                                        comm.bsend(
-                                            np.asarray(
-                                                [
-                                                    childnode.state,
+                                        if node.check_childnode == []:
+                                            node.expansion(chem_model)
+                                            m = random.choice(node.expanded_nodes)
+                                            n = node.addnode(node, m)
+                                            hsm.insert(Item(node.state, node))
+                                            _, dest = hsm.hashing(n.state)
+                                            comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
+                                                                   n.num_thread_visited]),
+                                                                   dest=dest, tag=JobType.SEARCH.value)
+                                        else:
+                                            childnode = node.selection()
+                                            hsm.insert(Item(node.state, node))
+                                            _, dest = hsm.hashing(childnode.state)
+                                            comm.bsend(np.asarray(
+                                                    [childnode.state,
                                                     childnode.reward,
                                                     childnode.wins,
                                                     childnode.visits,
                                                     childnode.num_thread_visited]),
-                                            dest=dest,
-                                            tag=0)
+                                                    dest=dest, tag=JobType.SEARCH.value)
 
+                                else:
+                                    score, mol = node.simulation(chem_model, node.state)
+                                    score = -1
+                                    allscore.append(score)
+                                    allmol.append(mol)
+                                    # backpropagation on local memory
+                                    node.update_local_node(score)
+                                    hsm.insert(Item(node.state, node))
+                                    _, dest = hsm.hashing(node.state[0:-1])
+                                    comm.bsend(
+                                        np.asarray(
+                                            [
+                                                node.state,
+                                                node.reward,
+                                                node.wins,
+                                                node.visits,
+                                                node.num_thread_visited]),
+                                                dest=dest, tag=JobType.BACKPROPAGATION.value)
                             else:
-                                score, mol = node.simulation(chem_model, node.state)
                                 score = -1
-                                allscore.append(score)
-                                allmol.append(mol)
-                                # backpropagation on local memory
-                                node.update_local_node(score)
+                                node.update_local_node(score)  # backpropagation on local memory
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
-                                comm.bsend(
-                                    np.asarray(
-                                        [
-                                            node.state,
-                                            node.reward,
-                                            node.wins,
-                                            node.visits,
-                                            node.num_thread_visited]),
-                                    dest=dest,
-                                    tag=1)
-                        else:
-                            score = -1
-                            node.update_local_node(score)  # backpropagation on local memory
-                            hsm.insert(Item(node.state, node))
-                            _, dest = hsm.hashing(node.state[0:-1])
-                            comm.bsend(np.asarray([node.state,
-                                                   node.reward,
-                                                   node.wins,
-                                                   node.visits,
-                                                   node.num_thread_visited]),
-                                       dest=dest,
-                                       tag=1)
+                                comm.bsend(np.asarray([node.state,
+                                                       node.reward,
+                                                       node.wins,
+                                                       node.visits,
+                                                       node.num_thread_visited]),
+                                                       dest=dest,
+                                                       tag=JobType.BACKPROPAGATION.value)
 
-            if cur_status.Get_tag() == 1:
-                node = Node(state=message[0])
-                node.reward = message[1]
-                local_node = hsm.search_table(message[0][0:-1])
-                if local_node.state == ['&']:
-                    local_node = backpropagation(local_node, node)
-                    hsm.insert(Item(local_node.state, local_node))
-                    _, dest = hsm.hashing(local_node.state)
-                    comm.bsend(np.asarray([local_node.state,
-                                           local_node.reward,
-                                           local_node.wins,
-                                           local_node.visits,
-                                           local_node.num_thread_visited]),
-                               dest=dest,
-                               tag=0)
-                else:
-                    local_node = backpropagation(local_node, node)
-                    hsm.insert(Item(local_node.state, local_node))
-                    _, dest = hsm.hashing(local_node.state[0:-1])
-                    comm.bsend(np.asarray([local_node.state,
-                                           local_node.reward,
-                                           local_node.wins,
-                                           local_node.visits,
-                                           local_node.num_thread_visited]),
-                               dest=dest,
-                               tag=1)
+                elif tag == JobType.BACKPROPAGATION.value:
+                    node = Node(state=message[0])
+                    node.reward = message[1]
+                    local_node = hsm.search_table(message[0][0:-1])
+                    if local_node.state == ['&']:
+                        local_node = backpropagation(local_node, node)
+                        hsm.insert(Item(local_node.state, local_node))
+                        _, dest = hsm.hashing(local_node.state)
+                        comm.bsend(np.asarray([local_node.state,
+                                               local_node.reward,
+                                               local_node.wins,
+                                               local_node.visits,
+                                               local_node.num_thread_visited]),
+                                   dest=dest,
+                                   tag=0)
+                    else:
+                        local_node = backpropagation(local_node, node)
+                        hsm.insert(Item(local_node.state, local_node))
+                        _, dest = hsm.hashing(local_node.state[0:-1])
+                        comm.bsend(np.asarray([local_node.state,
+                                               local_node.reward,
+                                               local_node.wins,
+                                               local_node.visits,
+                                               local_node.num_thread_visited]),
+                                   dest=dest,
+                                   tag=1)
+                elif tag == JobType.TIMEUP.value:
+                    timeup = True
 
     write_to_csv(allscore, 'OUTPUT/logp_hmcts_scoreForProcess' + str(rank))
     write_to_csv(allmol,'OUTPUT/logp_hmcts_generatedMoleculesForProcess' + str(rank))

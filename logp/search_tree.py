@@ -30,7 +30,23 @@ class Node:
         self.reward = 0
         self.check_childnode = []
         self.expanded_nodes = []
+        self.path_ucb = []
         self.childucb = []
+
+
+    def selection_for_dmcts(self):
+        ucb = []
+        for i in range(len(self.childNodes)):
+            ucb.append((self.childNodes[i].wins+self.childNodes[i].virtual_loss) /
+                       (self.childNodes[i].visits+self.childNodes[i].num_thread_visited) +
+                       1.0*sqrt(2*log(self.visits+self.num_thread_visited)
+                                / (self.childNodes[i].visits+self.childNodes[i].num_thread_visited)))
+        m = np.amax(ucb)
+        indices = np.nonzero(ucb == m)[0]
+        ind = pr.choice(indices)
+        node.childNodes[ind].num_thread_visited += 1
+        node.num_thread_visited += 1
+        return ind, self.childNodes[ind]
 
     def selection(self):
         ucb = []

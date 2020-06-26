@@ -5,6 +5,8 @@ from rdkit.Chem import MolFromSmiles, MolToSmiles
 import sascorer
 import gzip
 import networkx as nx
+import numpy as np
+from keras.preprocessing import sequence
 
 """Sampling molecules in simulation step"""
 def chem_kn_simulation(model, state, val):

@@ -2,10 +2,16 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import Descriptors
 from rdkit.Chem import MolFromSmiles, MolToSmiles
+from keras.preprocessing import sequence
 import sascorer
 import gzip
 import networkx as nx
+from rdkit.Chem import rdmolops
 from rollout import chem_kn_simulation, predict_smile, make_input_smile
+import numpy as np
+from math import log, sqrt
+import random as pr
+
 
 class Node:
 
@@ -44,7 +50,7 @@ class Node:
         self.childNodes[ind].num_thread_visited += 1
         self.num_thread_visited += 1
 
-        return node.childNodes[ind], self
+        return self.childNodes[ind]
 
     def expansion(self, model):
         state = self.state
@@ -82,9 +88,15 @@ class Node:
         self.check_childnode.extend(all_nodes)
         self.expanded_nodes.extend(all_nodes)
 
-        return self
+        #return self
 
     def addnode(self, m):
+        val = ['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
+               'n', '-', '#', 'S', 'Cl', '[O-]', '[C@H]', '[NH+]', '[C@]', 's', 'Br', '/',
+               '[nH]', '[NH3+]', '4', '[NH2+]', '[C@@]', '[N+]', '[nH+]', '\\', '[S@]', '5',
+               '[N-]', '[n+]', '[S@@]', '[S-]', '6', '7', 'I', '[n-]', 'P', '[OH+]', '[NH-]',
+               '[P@@H]', '[P@@]', '[PH2]', '[P@]', '[P+]', '[S+]', '[o+]', '[CH2-]', '[CH-]',
+               '[SH+]', '[O+]', '[s+]', '[PH+]', '[PH]', '8', '[S@@+]']
         self.expanded_nodes.remove(m)
         added_nodes = []
         added_nodes.extend(self.state)
@@ -93,7 +105,7 @@ class Node:
         n = Node(state=added_nodes, parentNode=self)
         n.num_thread_visited += 1
         self.childNodes.append(n)
-        return self, n
+        return  n
 
     def simulation(self, chem_model, state):
         val = ['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
@@ -144,7 +156,7 @@ class Node:
         self.visits += 1
         self.wins += score
         self.reward = score
-        return self
+
 
 
 

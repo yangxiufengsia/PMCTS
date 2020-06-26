@@ -42,9 +42,9 @@ class HashTable:
                 hashing_value ^= self.zobristnum[i][piece]
 
         tail=int(math.log2(self.nprocs))
-        print (tail)
+        #print (tail)
         head=int(64-math.log2(self.nprocs))
-        print (head)
+        #print (head)
         hash_key = format(hashing_value, '064b')[0:head]
         hash_key = int(hash_key, 2)
         core_dest = format(hashing_value, '064b')[-tail:]

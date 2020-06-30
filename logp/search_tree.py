@@ -44,8 +44,8 @@ class Node:
         m = np.amax(ucb)
         indices = np.nonzero(ucb == m)[0]
         ind = pr.choice(indices)
-        node.childNodes[ind].num_thread_visited += 1
-        node.num_thread_visited += 1
+        self.childNodes[ind].num_thread_visited += 1
+        self.num_thread_visited += 1
         return ind, self.childNodes[ind]
 
     def selection(self):

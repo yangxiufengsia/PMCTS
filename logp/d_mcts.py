@@ -25,7 +25,7 @@ from search_tree  import Node, backpropagation
 import csv
 from write_to_csv import wcsv
 from enum import Enum
-
+from check_ucbpath import update_selection_ucbtable, compare_ucb, backtrack
 
 class JobType(Enum):
     '''
@@ -35,78 +35,12 @@ class JobType(Enum):
     '''
     SEARCH = 0
     BACKPROPAGATION = 1
-    #
     PRIORITY_BORDER = 128
-    #
     TIMEUP = 254
     FINISH = 255
-
     @classmethod
     def is_high_priority(self, tag):
         return tag >= self.PRIORITY_BORDER.value
-
-
-
-
-
-def backtrack(pnode, cnode):
-    for path_ucb in reversed(pnode.path_ucb):
-        ind = path_ucb[0][3]
-        path_ucb[0][0] += cnode.reward
-        path_ucb[0][1] += 1
-        path_ucb[0][2] -= 1
-        path_ucb[ind+1][0] += cnode.reward
-        path_ucb[ind+1][1] += 1
-        path_ucb[ind+1][2] -= 1
-
-    return pnode
-
-
-def compare_ucb(pnode):
-    for path_ucb in pnode.path_ucb:
-        ucb = []
-        for i in range(len(path_ucb)-1):
-            ind = path_ucb[0][3]
-            ucb.append((path_ucb[i+1][0]+0)/(path_ucb[i+1][1]+path_ucb[i+1][2]) +
-                       1.0*sqrt(2*log(path_ucb[0][1]+path_ucb[0][2])/(path_ucb[i+1][1]+path_ucb[i+1][2])))
-        new_ind = np.argmax(ucb)
-
-        if ind != new_ind:
-            back_flag = 1
-            break
-        else:
-            back_flag = 0
-    # print ("back flag:",back_flag)
-
-    return back_flag
-
-
-def update_selection_ucbtable(node, ind):
-    # print ("check ucbtable:",node.state,len(node.state),len(node.path_ucb))
-    # print ("node in begining:",node.path_ucb)
-
-    table = []
-    final_table = []
-    # node_info=info
-    node_info = store_info(node)
-    node_info.append(ind)
-    table.append(node_info)
-    for i in range(len(node.childNodes)):
-        child_info = store_info(node.childNodes[i])
-        table.append(child_info)
-    if node.state == ['&']:
-        final_table.append(table)
-    else:
-        final_table.extend(node.path_ucb)
-        final_table.append(table)
-
-    return final_table
-
-
-def store_info(node):
-    table = [node.wins, node.visits, node.num_thread_visited]
-    return table
-
 
 def d_mcts(chem_model):
     comm.barrier()
@@ -118,7 +52,7 @@ def d_mcts(chem_model):
     timeup = False
     if rank == rootdest:
         root_job_message = np.asarray([['&'], None, 0, 0, 0, []])
-        for i in range(3 * nu_proc):
+        for i in range(3 * nprocs):
             temp = deepcopy(root_job_message)
             root_job = (JobType.SEARCH.value, temp)
             jobq.appendleft(root_job)
@@ -126,7 +60,7 @@ def d_mcts(chem_model):
         if rank == 0:
             if time.time()-start_time > 600:
                 timeup = True
-                for dest in range(1, nu_proc):
+                for dest in range(1, nprocs):
                     dummy_data = tag = JobType.TIMEUP.value
                     comm.bsend(dummy_data, dest=dest, tag=JobType.TIMEUP.value)
         while True:
@@ -149,9 +83,9 @@ def d_mcts(chem_model):
                 if hsm.search_table(message[0]) == None:
                     node = Node(state=message[0])
                     if node.state == ['&']:
-                        node = node.expansion(chem_model)
+                        node.expansion(chem_model)
                         m = random.choice(node.expanded_nodes)
-                        n = node.addnode(node, m)
+                        n = node.addnode(m)
                         hsm.insert(Item(node.state, node))
                         _, dest = hsm.hashing(n.state)
                         send_stime = time.time()
@@ -194,9 +128,8 @@ def d_mcts(chem_model):
                                                    n.num_thread_visited, n.path_ucb]),
                                                    dest=dest,
                                                    tag=JobType.SEARCH.value)
-
                         else:
-                            ind, childnode, node = node.selection()
+                            ind, childnode = node.selection_for_dmcts()
                             hsm.insert(Item(node.state, node))
                             ucb_table = update_selection_ucbtable(node, ind)
                             _, dest = hsm.hashing(childnode.state)
@@ -230,7 +163,7 @@ def d_mcts(chem_model):
                                                                dest=dest,
                                                                tag=JobType.SEARCH.value)
                                     else:
-                                        ind, childnode, node = node.selection()
+                                        ind, childnode = node.selection_for_dmcts()
                                         hsm.insert(Item(node.state, node))
                                         ucb_table = update_selection_ucbtable(node, ind)
                                         _, dest = hsm.hashing(childnode.state)
@@ -243,7 +176,7 @@ def d_mcts(chem_model):
                                 score = -1
                                 allscore.append(score)
                                 allmol.append(mol)
-                                node = node.update_local_node(score)
+                                node.update_local_node(score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state, node.reward, node.wins, node.visits,
@@ -292,6 +225,9 @@ def d_mcts(chem_model):
             elif tag == JobType.TIMEUP.value:
                 timeup = True
 
+    wcsv(allscore, 'OUTPUT/logp_dmcts_scoreForProcess' + str(rank))
+    wcsv(allmol,'OUTPUT/logp_dmcts_generatedMoleculesForProcess' + str(rank))
+
 
 
 if __name__ == "__main__":
@@ -315,6 +251,6 @@ if __name__ == "__main__":
     mem = np.zeros(1024*10*1024)  # 8192)
     random.seed(2)
     MPI.Attach_buffer(mem)
-    hsm = HashTable()
+    hsm = HashTable(nprocs)
     _, rootdest = hsm.hashing(['&'])
     d_mcts(chem_model)

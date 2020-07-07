@@ -19,7 +19,9 @@ class Node:
     define the node in the tree
     """
 
-    def __init__(self, state, parentNode=None):
+    def __init__(self, state, parentNode=None, val=None, max_len=None):
+        self.val = val
+        self.max_len = max_len
         self.state = state
         self.childNodes = []
         self.parentNode = parentNode
@@ -70,12 +72,6 @@ class Node:
 
     def expansion(self, model):
         state = self.state
-        val = ['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
-               'n', '-', '#', 'S', 'Cl', '[O-]', '[C@H]', '[NH+]', '[C@]', 's', 'Br', '/',
-               '[nH]', '[NH3+]', '4', '[NH2+]', '[C@@]', '[N+]', '[nH+]', '\\', '[S@]', '5',
-               '[N-]', '[n+]', '[S@@]', '[S-]', '6', '7', 'I', '[n-]', 'P', '[OH+]', '[NH-]',
-               '[P@@H]', '[P@@]', '[PH2]', '[P@]', '[P+]', '[S+]', '[o+]', '[CH2-]', '[CH-]',
-               '[SH+]', '[O+]', '[s+]', '[PH+]', '[PH]', '8', '[S@@+]']
         all_nodes = []
         end = "\n"
         position = []
@@ -84,10 +80,10 @@ class Node:
         new_compound = []
         get_int_old = []
         for j in range(len(position)):
-            get_int_old.append(val.index(position[j]))
+            get_int_old.append(self.val.index(position[j]))
         get_int = get_int_old
         x = np.reshape(get_int, (1, len(get_int)))
-        x_pad = sequence.pad_sequences(x, maxlen=82, dtype='int32',
+        x_pad = sequence.pad_sequences(x, maxlen=self.max_len, dtype='int32',
                                        padding='post', truncating='pre', value=0.)
         predictions = model.predict(x_pad)
         preds = np.asarray(predictions[0][len(get_int) - 1]).astype('float64')
@@ -107,31 +103,19 @@ class Node:
         #return self
 
     def addnode(self, m):
-        val = ['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
-               'n', '-', '#', 'S', 'Cl', '[O-]', '[C@H]', '[NH+]', '[C@]', 's', 'Br', '/',
-               '[nH]', '[NH3+]', '4', '[NH2+]', '[C@@]', '[N+]', '[nH+]', '\\', '[S@]', '5',
-               '[N-]', '[n+]', '[S@@]', '[S-]', '6', '7', 'I', '[n-]', 'P', '[OH+]', '[NH-]',
-               '[P@@H]', '[P@@]', '[PH2]', '[P@]', '[P+]', '[S+]', '[o+]', '[CH2-]', '[CH-]',
-               '[SH+]', '[O+]', '[s+]', '[PH+]', '[PH]', '8', '[S@@+]']
         self.expanded_nodes.remove(m)
         added_nodes = []
         added_nodes.extend(self.state)
-        added_nodes.append(val[m])
+        added_nodes.append(self.val[m])
         self.num_thread_visited += 1
         n = Node(state=added_nodes, parentNode=self)
         n.num_thread_visited += 1
         self.childNodes.append(n)
         return  n
 
-    def simulation(self, chem_model, state):
-        val = ['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
-               'n', '-', '#', 'S', 'Cl', '[O-]', '[C@H]', '[NH+]', '[C@]', 's', 'Br', '/',
-               '[nH]', '[NH3+]', '4', '[NH2+]', '[C@@]', '[N+]', '[nH+]', '\\', '[S@]', '5',
-               '[N-]', '[n+]', '[S@@]', '[S-]', '6', '7', 'I', '[n-]', 'P', '[OH+]', '[NH-]',
-               '[P@@H]', '[P@@]', '[PH2]', '[P@]', '[P+]', '[S+]', '[o+]', '[CH2-]', '[CH-]',
-               '[SH+]', '[O+]', '[s+]', '[PH+]', '[PH]', '8', '[S@@+]']
-        all_posible = chem_kn_simulation(chem_model, state, val)
-        generate_smile = predict_smile(all_posible, val)
+    def simulation_logp(self, chem_model, state):
+        all_posible = chem_kn_simulation(chem_model, state, self.val)
+        generate_smile = predict_smile(all_posible, self.val)
         new_compound = make_input_smile(generate_smile)
         kao = []
         try:
@@ -168,23 +152,53 @@ class Node:
         return score, new_compound[0]
 
 
+    def simulation_wavelength(chem_model,state,rank,gauid):
+        ind = rank
+        all_posible = chem_kn_simulation(chem_model, state, self.val, self.max_len)
+        generate_smile = predict_smile(all_posible, self.val)
+        new_compound = make_input_smile(generate_smile)
+        kao = []
+        try:
+            m = Chem.MolFromSmiles(str(new_compound[0]))
+        except:
+            m= None
+        if m!= None:
+            stable = tansfersdf(str(new_compound[0]),ind)
+            if stable == 1.0:
+                try:
+                    SDFinput = 'OUTPUT/wavelength_hmcts_CheckMolopt'+str(ind)+'.sdf'
+                    calc_sdf = GaussianDFTRun('B3LYP', '3-21G*', 1, 'uv homolumo', SDFinput, 0)
+                    outdic = calc_sdf.run_gaussian()
+                    wavelength = outdic['uv'][0]
+                except:
+                    wavelength = None
+            else:
+                wavelength = None
+            if wavelength != None and wavelength != []:
+                wavenum = wavelength[0]
+                gap = outdic['gap'][0]
+                lumo = outdic['gap'][1]
+                score = 0.01*wavenum/(1+0.01*abs(wavenum))
+            else:
+                score = -1
+        else:
+            score = -1
+        return score, new_compound[0]
+
+
+
     def update_local_node(self, score):
         self.visits += 1
         self.wins += score
         self.reward = score
 
-
-
-
-
-def backpropagation(pnode, cnode):
-    pnode.wins += cnode.reward
-    pnode.visits += 1
-    pnode.num_thread_visited -= 1
-    pnode.reward = cnode.reward
-    for i in range(len(pnode.childNodes)):
-        if cnode.state[-1] == pnode.childNodes[i].state[-1]:
-            pnode.childNodes[i].wins += cnode.reward
-            pnode.childNodes[i].num_thread_visited -= 1
-            pnode.childNodes[i].visits += 1
-    return pnode
+    def backpropagation(self, cnode):
+        self.wins += cnode.reward
+        self.visits += 1
+        self.num_thread_visited -= 1
+        self.reward = cnode.reward
+        for i in range(len(self.childNodes)):
+            if cnode.state[-1] == self.childNodes[i].state[-1]:
+                self.childNodes[i].wins += cnode.reward
+                self.childNodes[i].num_thread_visited -= 1
+                self.childNodes[i].visits += 1

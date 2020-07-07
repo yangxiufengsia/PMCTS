@@ -15,29 +15,24 @@ class HashTable:
     alphabetSize = 2 * 26
     hashTable = []
 
-    def __init__(self, nprocs):
+    def __init__(self, nprocs, val, max_len, val_len):
         self.hashTable = dict()  # [[] for i in range(size)]
-        self.S = 82
-        self.P = 64
+        self.S = max_len
+        self.P = val_len
+        self.val = val
         self.nprocs = nprocs
         self.zobristnum = [[0] * self.P for i in range(self.S)]
         for i in range(self.S):
             for j in range(self.P):
-                self.zobristnum[i][j] = randint(0, 2**64)
+                self.zobristnum[i][j] = randint(0, 2**64-1)
 
     def hashing(self, board):
-        val = ['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
-               'n', '-', '#', 'S', 'Cl', '[O-]', '[C@H]', '[NH+]', '[C@]', 's', 'Br', '/',
-               '[nH]', '[NH3+]', '4', '[NH2+]', '[C@@]', '[N+]', '[nH+]', '\\', '[S@]', '5',
-               '[N-]', '[n+]', '[S@@]', '[S-]', '6', '7', 'I', '[n-]', 'P', '[OH+]', '[NH-]',
-               '[P@@H]', '[P@@]', '[PH2]', '[P@]', '[P+]', '[S+]', '[o+]', '[CH2-]', '[CH-]',
-               '[SH+]', '[O+]', '[s+]', '[PH+]', '[PH]', '8', '[S@@+]']
         hashing_value = 0
         for i in range(self.S):
             piece = None
             if i <= len(board) - 1:
                 if board[i] in val:
-                    piece = val.index(board[i])
+                    piece = self.val.index(board[i])
             if(piece is not None):
                 hashing_value ^= self.zobristnum[i][piece]
 

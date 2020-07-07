@@ -56,12 +56,12 @@ class HashTable:
     hashTable    = []
     def __init__(self):
         self.hashTable =dict() #[[] for i in range(size)]
-        self.S=42
+        self.S=42 
         self.P=31
         self.zobristnum =[[0]*self.P for i in range(self.S)]
         for i in range(self.S):
             for j in range(self.P):
-                self.zobristnum[i][j]=randint(0, 2**64)
+                self.zobristnum[i][j]=randint(0, 2**64-1)
 
     def hashing(self, board):
         val=['\n', '&', 'C', '[C@@H]', '(', 'N', ')', 'O', '=', '1', '/', 'c', 'n', '[nH]', '[C@H]', '2', '[NH]', '[C]', '[CH]', '[N]', '[C@@]', '[C@]', 'o', '[O]', '3', '#', '[O-]', '[n+]', '[N+]', '[CH2]', '[n]']
@@ -296,7 +296,7 @@ def backpropagation(pnode,cnode):
             pnode.childNodes[i].wins+=cnode.reward
             pnode.childNodes[i].num_thread_visited-=1
             pnode.childNodes[i].visits+=1
-            
+
     return pnode
 
 
@@ -337,7 +337,7 @@ def TDS_UCT(chem_model):
     num_sim=[]
     gau_id=0
     _,rootdest=hsm.hashing(['&'])
-    
+
     for i in range(3):
         comm.bsend(np.asarray([['&'],None,0,0,0]), dest=rootdest, tag=0)
         num_send_message.append(rank)

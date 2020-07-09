@@ -31,7 +31,7 @@ class HashTable:
         for i in range(self.S):
             piece = None
             if i <= len(board) - 1:
-                if board[i] in val:
+                if board[i] in self.val:
                     piece = self.val.index(board[i])
             if(piece is not None):
                 hashing_value ^= self.zobristnum[i][piece]

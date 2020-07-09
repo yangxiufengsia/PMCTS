@@ -114,7 +114,7 @@ class Node:
         return  n
 
     def simulation_logp(self, chem_model, state):
-        all_posible = chem_kn_simulation(chem_model, state, self.val)
+        all_posible = chem_kn_simulation(chem_model, state, self.val, self.max_len)
         generate_smile = predict_smile(all_posible, self.val)
         new_compound = make_input_smile(generate_smile)
         kao = []

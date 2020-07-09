@@ -21,7 +21,7 @@ from rdkit.Chem import rdmolops
 from collections import deque
 from random import randint
 from zobrist_hash import Item, HashTable
-from search_tree  import Node, backpropagation
+from search_tree  import Node
 import csv
 from write_to_csv import wcsv
 from enum import Enum
@@ -82,7 +82,7 @@ def d_mcts(chem_model):
             (tag, message) = jobq.pop()
             if tag == JobType.SEARCH.value:
                 if hsm.search_table(message[0]) == None:
-                    node = Node(state=message[0])
+                    node = Node(state=message[0], val=val, max_len=max_len)
                     if node.state == ['&']:
                         node.expansion(chem_model)
                         m = random.choice(node.expanded_nodes)
@@ -213,7 +213,7 @@ def d_mcts(chem_model):
                                            dest=dest,
                                            tag=JobType.SEARCH.value)
                 else:
-                    local_node.backpropagation(local_node, node)
+                    local_node.backpropagation(node)
                     local_node = backtrack(local_node, node)
                     back_flag = compare_ucb(local_node)
                     hsm.insert(Item(local_node.state, local_node))

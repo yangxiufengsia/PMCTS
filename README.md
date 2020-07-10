@@ -13,21 +13,9 @@ This project requires installation of following softwares:
 
 To Run parallel MCTS algorithms for penalized logP optimization:
 
-> cd logp/
-
 > mpiexec -n 4 python h_mcts.py
 
 > mpiexec -n 4 python d_mcts.py
 
-> where 4 is the number of cores or processes to use.
+> where 4 is the number of cores or processes to use. You can use more cores by changing 4 to 1024 for example. 
 
-
-To Run parallel MCTS algorithms for wavelength optimization:
-
-> cd wavelength/
-
-> mpiexec -n 4 python h_mcts.py
-
-> mpiexec -n 4 python d_mcts.py
-
-> where 4 is the number of cores or processes to use.

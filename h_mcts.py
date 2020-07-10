@@ -7,7 +7,6 @@ import numpy as np
 import random as pr
 from copy import deepcopy
 import itertools
-import math
 import tensorflow as tf
 import argparse
 from load_model import loaded_logp_model, loaded_wave_model
@@ -23,14 +22,11 @@ from collections import deque
 
 from random import randint
 from zobrist_hash import Item, HashTable
-from search_tree  import Node, Node_logp, Node_wavelength
+from search_tree  import Node_logp, Node_wavelength
 import csv
 from write_to_csv import wcsv
 from enum import Enum
-#from RDKitText import tansfersdf
-#from SDF2GauInput import GauTDDFT_ForDFT
-#from GaussianRunPack import GaussianDFTRun
-from preprocess_SMILES import get_val
+
 
 class JobType(Enum):
     '''

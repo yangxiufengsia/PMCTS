@@ -11,14 +11,14 @@ from rollout import chem_kn_simulation, predict_smile, make_input_smile
 import numpy as np
 from math import log, sqrt
 import random as pr
-
+from RDKitText import tansfersdf
+from SDF2GauInput import GauTDDFT_ForDFT
+from GaussianRunPack import GaussianDFTRun
 
 class Node:
-
     """
     define the node in the tree
     """
-
     def __init__(self, state, parentNode=None, val=None, max_len=None):
         self.val = val
         self.max_len = max_len
@@ -35,20 +35,6 @@ class Node:
         self.path_ucb = []
         self.childucb = []
 
-
-    def selection_for_dmcts(self):
-        ucb = []
-        for i in range(len(self.childNodes)):
-            ucb.append((self.childNodes[i].wins+self.childNodes[i].virtual_loss) /
-                       (self.childNodes[i].visits+self.childNodes[i].num_thread_visited) +
-                       1.0*sqrt(2*log(self.visits+self.num_thread_visited)
-                                / (self.childNodes[i].visits+self.childNodes[i].num_thread_visited)))
-        m = np.amax(ucb)
-        indices = np.nonzero(ucb == m)[0]
-        ind = pr.choice(indices)
-        self.childNodes[ind].num_thread_visited += 1
-        self.num_thread_visited += 1
-        return ind, self.childNodes[ind]
 
     def selection(self):
         ucb = []
@@ -68,7 +54,7 @@ class Node:
         self.childNodes[ind].num_thread_visited += 1
         self.num_thread_visited += 1
 
-        return self.childNodes[ind]
+        return ind, self.childNodes[ind]
 
     def expansion(self, model):
         state = self.state
@@ -100,8 +86,6 @@ class Node:
         self.check_childnode.extend(all_nodes)
         self.expanded_nodes.extend(all_nodes)
 
-        #return self
-
     def addnode(self, m):
         self.expanded_nodes.remove(m)
         added_nodes = []
@@ -113,7 +97,38 @@ class Node:
         self.childNodes.append(n)
         return  n
 
-    def simulation_logp(self, chem_model, state):
+    def update_local_node(self, score):
+        self.visits += 1
+        self.wins += score
+        self.reward = score
+
+    def backpropagation(self, cnode):
+        self.wins += cnode.reward
+        self.visits += 1
+        self.num_thread_visited -= 1
+        self.reward = cnode.reward
+        for i in range(len(self.childNodes)):
+            if cnode.state[-1] == self.childNodes[i].state[-1]:
+                self.childNodes[i].wins += cnode.reward
+                self.childNodes[i].num_thread_visited -= 1
+                self.childNodes[i].visits += 1
+
+
+class Node_logp(Node):
+    """
+    logP property
+    """
+    def __init__(self, state):
+        self.val=['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
+                'n', '-', '#', 'S', 'Cl', '[O-]', '[C@H]', '[NH+]', '[C@]', 's', 'Br', '/',
+                '[nH]', '[NH3+]', '4', '[NH2+]', '[C@@]', '[N+]', '[nH+]', '\\', '[S@]', '5',
+                '[N-]', '[n+]', '[S@@]', '[S-]', '6', '7', 'I', '[n-]', 'P', '[OH+]', '[NH-]',
+                '[P@@H]', '[P@@]', '[PH2]', '[P@]', '[P+]', '[S+]', '[o+]', '[CH2-]', '[CH-]',
+                '[SH+]', '[O+]', '[s+]', '[PH+]', '[PH]', '8', '[S@@+]']
+        self.max_len=82
+        Node.__init__(self, state=state, parentNode=None, val=self.val, max_len=self.max_len)
+
+    def simulation(self, chem_model, state, rank, gauid):
         all_posible = chem_kn_simulation(chem_model, state, self.val, self.max_len)
         generate_smile = predict_smile(all_posible, self.val)
         new_compound = make_input_smile(generate_smile)
@@ -152,7 +167,18 @@ class Node:
         return score, new_compound[0]
 
 
-    def simulation_wavelength(chem_model,state,rank,gauid):
+class Node_wavelength(Node):
+    """
+    wavelength property
+    """
+    def __init__(self, state):
+        self.val=['\n', '&', 'C', '[C@@H]', '(', 'N', ')', 'O', '=', '1', '/', 'c', 'n', '[nH]', 
+                '[C@H]', '2', '[NH]', '[C]', '[CH]', '[N]', '[C@@]', '[C@]', 'o', '[O]', '3', '#',
+                '[O-]', '[n+]', '[N+]', '[CH2]', '[n]']
+        self.max_len=42
+        Node.__init__(self, state, parentNode=None, val=self.val, max_len=self.max_len)
+
+    def simulation(self, chem_model, state, rank, gauid):
         ind = rank
         all_posible = chem_kn_simulation(chem_model, state, self.val, self.max_len)
         generate_smile = predict_smile(all_posible, self.val)
@@ -166,7 +192,7 @@ class Node:
             stable = tansfersdf(str(new_compound[0]),ind)
             if stable == 1.0:
                 try:
-                    SDFinput = 'OUTPUT/wavelength_hmcts_CheckMolopt'+str(ind)+'.sdf'
+                    SDFinput = 'OUTPUT/CheckMolopt'+str(ind)+'.sdf'
                     calc_sdf = GaussianDFTRun('B3LYP', '3-21G*', 1, 'uv homolumo', SDFinput, 0)
                     outdic = calc_sdf.run_gaussian()
                     wavelength = outdic['uv'][0]
@@ -184,21 +210,3 @@ class Node:
         else:
             score = -1
         return score, new_compound[0]
-
-
-
-    def update_local_node(self, score):
-        self.visits += 1
-        self.wins += score
-        self.reward = score
-
-    def backpropagation(self, cnode):
-        self.wins += cnode.reward
-        self.visits += 1
-        self.num_thread_visited -= 1
-        self.reward = cnode.reward
-        for i in range(len(self.childNodes)):
-            if cnode.state[-1] == self.childNodes[i].state[-1]:
-                self.childNodes[i].wins += cnode.reward
-                self.childNodes[i].num_thread_visited -= 1
-                self.childNodes[i].visits += 1

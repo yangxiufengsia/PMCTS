@@ -21,7 +21,7 @@ from rdkit.Chem import rdmolops
 from collections import deque
 from random import randint
 from zobrist_hash import Item, HashTable
-from search_tree  import Node
+from search_tree  import Node_logp, Node_wavelength
 import csv
 from write_to_csv import wcsv
 from enum import Enum
@@ -82,23 +82,20 @@ def d_mcts(chem_model):
             (tag, message) = jobq.pop()
             if tag == JobType.SEARCH.value:
                 if hsm.search_table(message[0]) == None:
-                    node = Node(state=message[0], val=val, max_len=max_len)
+                    node = Node_logp(state=message[0])
                     if node.state == ['&']:
                         node.expansion(chem_model)
                         m = random.choice(node.expanded_nodes)
                         n = node.addnode(m)
                         hsm.insert(Item(node.state, node))
                         _, dest = hsm.hashing(n.state)
-                        send_stime = time.time()
                         comm.bsend(np.asarray([n.state, n.reward, n.wins, n.visits,
                                                n.num_thread_visited, n.path_ucb]),
                                                dest=dest,
                                                tag=JobType.SEARCH.value)
                     else:
-                        if len(node.state) < max_len:
-                            score, mol = node.simulation_logp(chem_model, node.state)
-                            ## for wavelength
-                            #score, mol = simulation_wavelength(chem_model,node.state,rank,gau_id)
+                        if len(node.state) < node.max_len:
+                            score, mol = node.simulation(chem_model, node.state, rank, gau_id)
                             gau_id+=1
                             allscore.append(score)
                             allmol.append(mol)
@@ -133,7 +130,7 @@ def d_mcts(chem_model):
                                                    dest=dest,
                                                    tag=JobType.SEARCH.value)
                         else:
-                            ind, childnode = node.selection_for_dmcts()
+                            ind, childnode = node.selection()
                             hsm.insert(Item(node.state, node))
                             ucb_table = update_selection_ucbtable(node, ind)
                             _, dest = hsm.hashing(childnode.state)
@@ -143,8 +140,8 @@ def d_mcts(chem_model):
                                                    dest=dest,tag=JobType.SEARCH.value)
                     else:
                         node.path_ucb = message[5]
-                        print("check ucb:", node.wins, node.visits, node.num_thread_visited)
-                        if len(node.state) < max_len:
+                        print("check ucb:", node.path_ucb, node.wins, node.visits, node.num_thread_visited)
+                        if len(node.state) < node.max_len:
                             if node.state[-1] != '\n':
                                 if node.expanded_nodes != []:
                                     m = random.choice(node.expanded_nodes)
@@ -167,7 +164,7 @@ def d_mcts(chem_model):
                                                                dest=dest,
                                                                tag=JobType.SEARCH.value)
                                     else:
-                                        ind, childnode = node.selection_for_dmcts()
+                                        ind, childnode = node.selection()
                                         hsm.insert(Item(node.state, node))
                                         ucb_table = update_selection_ucbtable(node, ind)
                                         _, dest = hsm.hashing(childnode.state)
@@ -176,9 +173,7 @@ def d_mcts(chem_model):
                                                                dest=dest,
                                                                tag=JobType.SEARCH.value)
                             else:
-                                score, mol = node.simulation(chem_model, node.state)
-                                ## for wavelength
-                                #score, mol = simulation_wavelength(chem_model,node.state,rank,gau_id)
+                                score, mol = node.simulation(chem_model, node.state, rank, gau_id)
                                 gau_id+=1
                                 score = -1
                                 allscore.append(score)
@@ -201,7 +196,7 @@ def d_mcts(chem_model):
                                                    tag=JobType.BACKPROPAGATION.value)
 
             elif tag == JobType.BACKPROPAGATION.value:
-                node = Node(state=message[0])
+                node = Node_logp(state=message[0])
                 node.reward = message[1]
                 local_node = hsm.search_table(message[0][0:-1])
                 if local_node.state == ['&']:
@@ -238,26 +233,28 @@ def d_mcts(chem_model):
 
 
 if __name__ == "__main__":
+    """
+    Initialize MPI environment
+    """
+
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     nprocs = comm.Get_size()
     status = MPI.Status()
-    max_len = 82 ## max_len=42 for wavelength
-    val = ['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
-              'n', '-', '#', 'S', 'Cl', '[O-]', '[C@H]', '[NH+]', '[C@]', 's', 'Br', '/',
-               '[nH]', '[NH3+]', '4', '[NH2+]', '[C@@]', '[N+]', '[nH+]', '\\', '[S@]', '5',
-               '[N-]', '[n+]', '[S@@]', '[S-]', '6', '7', 'I', '[n-]', 'P', '[OH+]', '[NH-]',
-               '[P@@H]', '[P@@]', '[PH2]', '[P@]', '[P+]', '[S+]', '[o+]', '[CH2-]', '[CH-]',
-               '[SH+]', '[O+]', '[s+]', '[PH+]', '[PH]', '8', '[S@@+]']
+    mem = np.zeros(1024 * 10 * 1024)
+    MPI.Attach_buffer(mem)
 
-    #val_wavelength=['\n', '&', 'C', '[C@@H]', '(', 'N', ')', 'O', '=', '1', '/', 'c', 'n', '[nH]',
-    #               '[C@H]', '2', '[NH]', '[C]', '[CH]', '[N]', '[C@@]',
-    #               '[C@]', 'o', '[O]', '3', '#', '[O-]', '[n+]', '[N+]', '[CH2]', '[n]']
-
+    """
+    Load the pre-trained RNN model
+    """
     chem_model = loaded_model()
     graph = tf.get_default_graph()
-    mem = np.zeros(1024 * 10 * 1024)
+    node=Node_logp(state=['&'])
+
+    """
+    Initialize HashTable
+    """  
     random.seed(3)
-    MPI.Attach_buffer(mem)
-    hsm = HashTable(nprocs, val, max_len, len(val))## this is for deisign molecules with desired logp property
+    hsm = HashTable(nprocs, node.val, node. max_len, len(node.val))
+
     d_mcts(chem_model)

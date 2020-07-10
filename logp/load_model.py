@@ -19,7 +19,7 @@ import sys
 from keras.utils.np_utils import to_categorical
 from keras.preprocessing import sequence
 from keras.models import model_from_json
-from make_smile import zinc_data_with_bracket_original, zinc_processed_with_bracket
+#from make_smile import zinc_data_with_bracket_original, zinc_processed_with_bracket
 
 def prepare_data(smiles,all_smile):
     all_smile_index=[]
@@ -40,20 +40,25 @@ def prepare_data(smiles,all_smile):
     return X_train,y_train
 
 
-def loaded_model():
+def loaded_logp_model():
     json_file = open('RNN-model/model.json', 'r')
-
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
 
     # load weights into new model
-
     loaded_model.load_weights('RNN-model/model.h5')
-
     print("Loaded model from disk")
-   
-    
+
+def loaded_wave_model():
+    json_file = open('wavemodel/model.json', 'r')
+    loaded_model_json = json_file.read()
+    json_file.close()
+    loaded_model = model_from_json(loaded_model_json)
+
+    # load weights into new model
+    loaded_model.load_weights('wavemodel/model.h5')
+    print("Loaded model from disk")
+
 
     return loaded_model
-

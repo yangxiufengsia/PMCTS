@@ -245,8 +245,8 @@ def H_MCTS(chem_model):
                 timeup = True
 
 
-    wcsv(allscore, 'OUTPUT/logp_hmcts_scoreForProcess' + str(rank))
-    wcsv(allmol,'OUTPUT/logp_hmcts_generatedMoleculesForProcess' + str(rank))
+    wcsv(allscore, 'logp_hmcts_scoreForProcess' + str(rank))
+    wcsv(allmol,'logp_hmcts_generatedMoleculesForProcess' + str(rank))
 
 
 if __name__ == "__main__":

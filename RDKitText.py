@@ -11,14 +11,14 @@ def tansfersdf(com,index):
     AllChem.EmbedMolecule(m2)
     m3 = Chem.AddHs(m2)
     AllChem.EmbedMolecule(m3)
-    Chem.MolToMolFile(m3,'OUTPUT/logp_CheckMol'+str(index)+'.sdf')
+    Chem.MolToMolFile(m3,'CheckMol'+str(index)+'.sdf')
     try:
         opt = AllChem.UFFOptimizeMolecule(m3,maxIters=200)
     except:
         opt=None
     if opt!=None:
-        Chem.MolToMolFile(m3,'OUTPUT/logp_CheckMolopt'+str(index)+'.sdf')
-        SpinMulti=Read_sdf('OUTPUT/logp_CheckMolopt'+str(index)+'.sdf')
+        Chem.MolToMolFile(m3,'CheckMolopt'+str(index)+'.sdf')
+        SpinMulti=Read_sdf('CheckMolopt'+str(index)+'.sdf')
     else:
         SpinMulti=0
 

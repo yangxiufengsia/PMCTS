@@ -7,7 +7,6 @@ import numpy as np
 import random as pr
 from copy import deepcopy
 import itertools
-import math
 import tensorflow as tf
 import argparse
 from load_model import loaded_logp_model, loaded_wave_model
@@ -23,14 +22,11 @@ from collections import deque
 
 from random import randint
 from zobrist_hash import Item, HashTable
-from search_tree  import Node, Node_logp, Node_wavelength
+from search_tree  import Node_logp, Node_wavelength
 import csv
 from write_to_csv import wcsv
 from enum import Enum
-#from RDKitText import tansfersdf
-#from SDF2GauInput import GauTDDFT_ForDFT
-#from GaussianRunPack import GaussianDFTRun
-from preprocess_SMILES import get_val
+
 
 class JobType(Enum):
     '''
@@ -92,7 +88,7 @@ def H_MCTS(chem_model):
             (tag, message) = jobq.pop()
             if tag == JobType.SEARCH.value:
                 if hsm.search_table(message[0]) is None:  # if node is not in the hash table
-                    node = Node_wavelength(state=message[0])
+                    node = Node_logp(state=message[0])
                     #node.state = message[0]
                     if node.state == ['&']:
                         node.expansion(chem_model)
@@ -132,7 +128,7 @@ def H_MCTS(chem_model):
 
                 else:  # if node already in the local hashtable
                     node = hsm.search_table(message[0])
-                    print ("debug:",node.state, node.visits, node.num_thread_visited, node.wins)
+                    print ("debug:",node.visits, node.num_thread_visited, node.wins)
                     if node.state == ['&']:
                         if node.expanded_nodes != []:
                             m = random.choice(node.expanded_nodes)
@@ -153,7 +149,7 @@ def H_MCTS(chem_model):
                                                    dest=dest,
                                                    tag=JobType.SEARCH.value)
                     else:
-                        node.num_thread_visited = message[4]
+                        #node.num_thread_visited = message[4]
                         if len(node.state) < node.max_len:
                             if node.state[-1] != '\n':
                                 if node.expanded_nodes != []:
@@ -219,7 +215,7 @@ def H_MCTS(chem_model):
                                                    tag=JobType.BACKPROPAGATION.value)
 
             elif tag == JobType.BACKPROPAGATION.value:
-                node = Node_wavelength(state=message[0])
+                node = Node_logp(state=message[0])
                 #node.state = message[0]
                 node.reward = message[1]
                 local_node = hsm.search_table(message[0][0:-1])
@@ -268,15 +264,16 @@ if __name__ == "__main__":
     """
     Load the pre-trained RNN model
     """
-    chem_model = loaded_wave_model()
+    chem_model = loaded_logp_model()
+    print (chem_model)
     graph = tf.get_default_graph()
-    node=Node_wavelength(state=['&'])
+    node=Node_logp(state=['&'])
 
     """
     Initialize HashTable
     """  
     random.seed(3)
-    hsm = HashTable(nprocs, node.val, node. max_len, len(node.val))
+    hsm = HashTable(nprocs, node.val, node.max_len, len(node.val))
 
     """
     Design molecules with desired properties:

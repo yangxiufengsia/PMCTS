@@ -49,7 +49,6 @@ def loaded_logp_model():
     # load weights into new model
     loaded_model.load_weights('RNN-model/model.h5')
     print("Loaded model from disk")
-    return loaded_model
 
 def loaded_wave_model():
     json_file = open('wavemodel/model.json', 'r')

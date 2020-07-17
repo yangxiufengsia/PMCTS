@@ -21,7 +21,7 @@ from rdkit.Chem import rdmolops
 from collections import deque
 from random import randint
 from zobrist_hash import Item, HashTable
-from search_tree  import Node_logp, Node_wavelength
+from search_tree  import Tree_Node
 import csv
 from write_to_csv import wcsv
 from enum import Enum
@@ -82,7 +82,7 @@ def d_mcts(chem_model):
             (tag, message) = jobq.pop()
             if tag == JobType.SEARCH.value:
                 if hsm.search_table(message[0]) == None:
-                    node = Node_logp(state=message[0])
+                    node = Tree_Node(state=message[0], property=property)
                     if node.state == ['&']:
                         node.expansion(chem_model)
                         m = random.choice(node.expanded_nodes)
@@ -196,7 +196,7 @@ def d_mcts(chem_model):
                                                    tag=JobType.BACKPROPAGATION.value)
 
             elif tag == JobType.BACKPROPAGATION.value:
-                node = Node_logp(state=message[0])
+                node = Tree_Node(state=message[0], property=property)
                 node.reward = message[1]
                 local_node = hsm.search_table(message[0][0:-1])
                 if local_node.state == ['&']:
@@ -248,13 +248,15 @@ if __name__ == "__main__":
     Load the pre-trained RNN model
     """
     chem_model = loaded_logp_model()
-    graph = tf.get_default_graph()
-    node=Node_logp(state=['&'])
+    node=Tree_Node(state=['&'], property=property)
+    
+    """
+    property="logP"
+    """
 
     """
     Initialize HashTable
     """  
-    random.seed(3)
     hsm = HashTable(nprocs, node.val, node. max_len, len(node.val))
 
     d_mcts(chem_model)

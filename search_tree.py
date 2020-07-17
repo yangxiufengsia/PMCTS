@@ -21,6 +21,7 @@ class property_simulator:
     """
     def __init__(self, property):
         self.property=property
+        #print (self.property)
         if self.property=="logP":
             self.val=['\n', '&', 'C', '(', ')', 'c', '1', '2', 'o', '=', 'O', 'N', '3', 'F', '[C@@H]',
                 'n', '-', '#', 'S', 'Cl', '[O-]', '[C@H]', '[NH+]', '[C@]', 's', 'Br', '/',
@@ -29,7 +30,7 @@ class property_simulator:
                 '[P@@H]', '[P@@]', '[PH2]', '[P@]', '[P+]', '[S+]', '[o+]', '[CH2-]', '[CH-]',
                 '[SH+]', '[O+]', '[s+]', '[PH+]', '[PH]', '8', '[S@@+]']
             self.max_len=82
-        if self.property="wavelength":
+        if self.property=="wavelength":
             self.val=['\n', '&', 'C', '[C@@H]', '(', 'N', ')', 'O', '=', '1', '/', 'c', 'n', '[nH]',
                 '[C@H]', '2', '[NH]', '[C]', '[CH]', '[N]', '[C@@]', '[C@]', 'o', '[O]', '3', '#',
                 '[O-]', '[n+]', '[N+]', '[CH2]', '[n]']
@@ -115,10 +116,11 @@ class Tree_Node(property_simulator):
     """
     define the node in the tree
     """
-    def __init__(self, state, parentNode=parentNode, property=property):
-        property_simulator.__init__(self, property)
-        self.val = property_simulator.val
-        self.max_len = property_simulator.max_len
+    def __init__(self, state, parentNode=None, property=property):
+       
+        #print (property_simulator.val)
+        #self.val = property_simulator.val
+        #self.max_len = property_simulator.max_len
         self.state = state
         self.childNodes = []
         self.parentNode = parentNode
@@ -131,8 +133,7 @@ class Tree_Node(property_simulator):
         self.expanded_nodes = []
         self.path_ucb = []
         self.childucb = []
-
-
+        property_simulator.__init__(self, property)
     def selection(self):
         ucb = []
         for i in range(len(self.childNodes)):
@@ -189,7 +190,7 @@ class Tree_Node(property_simulator):
         added_nodes.extend(self.state)
         added_nodes.append(self.val[m])
         self.num_thread_visited += 1
-        n = Node(state=added_nodes, parentNode=self)
+        n = Tree_Node(state=added_nodes, parentNode=self)
         n.num_thread_visited += 1
         self.childNodes.append(n)
         return  n
@@ -209,4 +210,5 @@ class Tree_Node(property_simulator):
                 self.childNodes[i].wins += cnode.reward
                 self.childNodes[i].num_thread_visited -= 1
                 self.childNodes[i].visits += 1
+
 

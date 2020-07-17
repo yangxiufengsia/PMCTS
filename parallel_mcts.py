@@ -46,10 +46,7 @@ class p_mcts:
     """
     parallel mcts algorithms includes H-MCTS and D-MCTS
     """
-    def __init__(self, property):
-        self.property=property
-
-    def H_MCTS(self, chem_model, hsm):
+    def H_MCTS(self, chem_model, hsm, property):
         comm.barrier()
         gau_id = 0 ## this is used for wavelength
         allscore = []
@@ -253,8 +250,7 @@ class p_mcts:
         #wcsv(allmol,'logp_hmcts_generatedMoleculesForProcess' + str(rank))
         return allscore, allmol
 
-    def D_MCTS(self, chem_model):
-
+    def D_MCTS(self, chem_model, hsm, property):
         def d_mcts(chem_model):
             comm.barrier()
             gau_id = 0 ## this is used for wavelength

@@ -39,8 +39,12 @@ class p_mcts:
     """
     parallel mcts algorithms includes H-MCTS and D-MCTS
     """
-    def H_MCTS(chem_model, hsm, property, rank):
+    def H_MCTS(chem_model, hsm, property, comm):
         #comm.barrier()
+        rank = comm.Get_rank()
+        nprocs = comm.Get_size()
+        status = MPI.Status()
+
         gau_id = 0 ## this is used for wavelength
         allscore = []
         allmol = []
@@ -243,8 +247,11 @@ class p_mcts:
         #wcsv(allmol,'logp_hmcts_generatedMoleculesForProcess' + str(rank))
         return allscore, allmol
 
-    def D_MCTS(chem_model, hsm, property, rank, comm, status):
+    def D_MCTS(chem_model, hsm, property, comm):
         #comm.barrier()
+        rank = comm.Get_rank()
+        nprocs = comm.Get_size()
+        status = MPI.Status()
         gau_id = 0 ## this is used for wavelength
         start_time = time.time()
         allscore = []
@@ -252,6 +259,9 @@ class p_mcts:
         _, rootdest = hsm.hashing(['&'])
         jobq = deque()
         timeup = False
+        print (status)
+        print (rank)
+    
         if rank == rootdest:
             root_job_message = np.asarray([['&'], None, 0, 0, 0, []])
             for i in range(3 * nprocs):
@@ -267,6 +277,7 @@ class p_mcts:
                         comm.bsend(dummy_data, dest=dest, tag=JobType.TIMEUP.value)
             while True:
                 ret = comm.Iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+                #print (ret)
                 if ret == False:
                     break
                 else:
@@ -283,7 +294,7 @@ class p_mcts:
                 (tag, message) = jobq.pop()
                 if tag == JobType.SEARCH.value:
                     if hsm.search_table(message[0]) == None:
-                        node = Node_logp(state=message[0])
+                        node = Tree_Node(state=message[0], property=property)
                         if node.state == ['&']:
                             node.expansion(chem_model)
                             m = random.choice(node.expanded_nodes)
@@ -397,7 +408,7 @@ class p_mcts:
                                                        tag=JobType.BACKPROPAGATION.value)
 
                 elif tag == JobType.BACKPROPAGATION.value:
-                    node = Node_logp(state=message[0])
+                    node = Tree_Node(state=message[0], property=property)
                     node.reward = message[1]
                     local_node = hsm.search_table(message[0][0:-1])
                     if local_node.state == ['&']:

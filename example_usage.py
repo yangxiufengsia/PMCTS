@@ -39,7 +39,7 @@ if __name__ == "__main__":
     currently available properties: logP (rdkit) and wavelength (DFT)
     """
     comm.barrier()
-    score,mol=p_mcts.D_MCTS(chem_model, hsm, property, rank, comm, status)
+    score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
     #p_mcts.D_MCTS(chem_model, hsm)
     wcsv(allscore, 'OUTPUT/logp_dmcts_scoreForProcess' + str(rank))
     wcsv(allmol,'OUTPUT/logp_dmcts_generatedMoleculesForProcess' + str(rank))

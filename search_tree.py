@@ -133,7 +133,8 @@ class Tree_Node(property_simulator):
         self.path_ucb = []
         self.childucb = []
         property_simulator.__init__(self, property)
-        self.val=property_simulator.val
+        #self.val=property_simulator.val
+        #print (self.val)
     def selection(self):
         ucb = []
         for i in range(len(self.childNodes)):

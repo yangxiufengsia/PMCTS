@@ -11,11 +11,9 @@ This project requires installation of following softwares:
 9. Networkx (pip install networkx) 
 10. Gaussian 16 (a commercial software used for wavelength calculations, http://gaussian.com/gaussian16/)
 
-To Run parallel MCTS algorithms for penalized logP optimization:
+To Run parallel MCTS algorithms example (logp property):
 
-> mpiexec -n 4 python h_mcts.py
-
-> mpiexec -n 4 python d_mcts.py
+> mpiexec -n 4 python example_usage.py
 
 > where 4 is the number of cores or processes to use. You can use more cores by changing 4 to 1024 for example. 
 

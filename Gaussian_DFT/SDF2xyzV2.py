@@ -1,7 +1,7 @@
 
 import sys, math
 from numpy import *
-import AtomInfo
+from Gaussian_DFT import AtomInfo
 
 def Read_sdf(infilename):
 
@@ -147,4 +147,3 @@ def Read_sdf(infilename):
 #############################################################
 
 	return SpinMulti
-

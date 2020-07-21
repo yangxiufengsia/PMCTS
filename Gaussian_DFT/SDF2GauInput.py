@@ -2,7 +2,7 @@
 import os, sys, math
 import subprocess
 from numpy import *
-import AtomInfo, GetAdsorption
+from Gaussian_DFT import AtomInfo, GetAdsorption
 
 def Read_sdf(infilename):
 

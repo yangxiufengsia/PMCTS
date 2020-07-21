@@ -3,8 +3,8 @@
 import sys
 from rdkit import Chem
 from rdkit.Chem import AllChem
-import AtomInfo
-from SDF2xyzV2 import Read_sdf
+from Gaussian_DFT import AtomInfo
+from Gaussian_DFT.SDF2xyzV2 import Read_sdf
 
 def tansfersdf(com,index):
     m2 = Chem.MolFromSmiles(com)
@@ -23,4 +23,3 @@ def tansfersdf(com,index):
         SpinMulti=0
 
     return SpinMulti
-

@@ -1,7 +1,7 @@
 import os, sys, math
 from numpy import *
 import subprocess
-import AtomInfo
+from Gaussian_DFT import AtomInfo
 
 class GaussianDFTRun:
 

@@ -41,24 +41,24 @@ def prepare_data(smiles,all_smile):
 
 
 def loaded_logp_model():
-    json_file = open('RNN-model/model.json', 'r')
+    json_file = open('models/logpmodel/model.json', 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
 
     # load weights into new model
-    loaded_model.load_weights('RNN-model/model.h5')
+    loaded_model.load_weights('models/logpmodel/model.h5')
     print("Loaded model from disk")
     return loaded_model
 
 def loaded_wave_model():
-    json_file = open('wavemodel/model.json', 'r')
+    json_file = open('models/wavemodel/model.json', 'r')
     loaded_model_json = json_file.read()
     json_file.close()
     loaded_model = model_from_json(loaded_model_json)
 
     # load weights into new model
-    loaded_model.load_weights('wavemodel/model.h5')
+    loaded_model.load_weights('models/wavemodel/model.h5')
     print("Loaded model from disk")
 
 

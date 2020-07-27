@@ -99,8 +99,6 @@ class p_mcts:
                         else:
                             if len(node.state) < node.max_len: ## or max_len_wavelength :
                                 score, mol = node.simulation(chem_model, node.state, rank, gau_id)
-                                ## for wavelength
-                                #score, mol = simulation_wavelength(chem_model,node.state,rank,gau_id)
                                 gau_id+=1
                                 allscore.append(score)
                                 allmol.append(mol)
@@ -214,7 +212,6 @@ class p_mcts:
 
                 elif tag == JobType.BACKPROPAGATION.value:
                     node = Tree_Node(state=message[0], property=property)
-                    #node.state = message[0]
                     node.reward = message[1]
                     local_node = hsm.search_table(message[0][0:-1])
                     if local_node.state == ['&']:
@@ -241,10 +238,6 @@ class p_mcts:
                                                tag = JobType.BACKPROPAGATION.value)
                 elif tag == JobType.TIMEUP.value:
                     timeup = True
-
-
-        #wcsv(allscore, 'logp_hmcts_scoreForProcess' + str(rank))
-        #wcsv(allmol,'logp_hmcts_generatedMoleculesForProcess' + str(rank))
         return allscore, allmol
 
     def D_MCTS(chem_model, hsm, property, comm):
@@ -259,9 +252,6 @@ class p_mcts:
         _, rootdest = hsm.hashing(['&'])
         jobq = deque()
         timeup = False
-        print (status)
-        print (rank)
-
         if rank == rootdest:
             root_job_message = np.asarray([['&'], None, 0, 0, 0, []])
             for i in range(3 * nprocs):
@@ -277,7 +267,6 @@ class p_mcts:
                         comm.bsend(dummy_data, dest=dest, tag=JobType.TIMEUP.value)
             while True:
                 ret = comm.Iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-                #print (ret)
                 if ret == False:
                     break
                 else:

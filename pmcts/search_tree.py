@@ -14,10 +14,6 @@ class Tree_Node(simulator):
     define the node in the tree
     """
     def __init__(self, state, parentNode=None, property=property):
-
-        #print (property_simulator.val)
-        #self.val = property_simulator.val
-        #self.max_len = property_simulator.max_len
         self.state = state
         self.childNodes = []
         self.parentNode = parentNode
@@ -31,8 +27,6 @@ class Tree_Node(simulator):
         self.path_ucb = []
         self.childucb = []
         property_simulator.__init__(self, property)
-        #self.val=property_simulator.val
-        #print (self.val)
     def selection(self):
         ucb = []
         for i in range(len(self.childNodes)):
@@ -50,7 +44,6 @@ class Tree_Node(simulator):
         ind = pr.choice(indices)
         self.childNodes[ind].num_thread_visited += 1
         self.num_thread_visited += 1
-
         return ind, self.childNodes[ind]
 
     def expansion(self, model):
@@ -105,7 +98,6 @@ class Tree_Node(simulator):
         new_compound = make_input_smile(generate_smile)
         score, mol= simulator.run_simulator(self.property)
         return score, mol
-
 
     def backpropagation(self, cnode):
         self.wins += cnode.reward

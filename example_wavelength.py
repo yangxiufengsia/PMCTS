@@ -23,11 +23,8 @@ if __name__ == "__main__":
     """
     Load the pre-trained RNN model
     """
-    chem_model = loaded_logp_model()
-    print (chem_model)
-    property="logP"
+    chem_model = loaded_wavelength_model()
     node=Tree_Node(state=['&'], property=property)
-
     """
     Initialize HashTable
     """
@@ -39,7 +36,8 @@ if __name__ == "__main__":
     currently available properties: logP (rdkit) and wavelength (DFT)
     """
     comm.barrier()
-    score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
-    #p_mcts.D_MCTS(chem_model, hsm)
+    property="wavelength"
+    #score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
+    score,mol=p_mcts.D_MCTS(chem_model, hsm, property, comm)
     wcsv(allscore, 'OUTPUT/logp_dmcts_scoreForProcess' + str(rank))
     wcsv(allmol,'OUTPUT/logp_dmcts_generatedMoleculesForProcess' + str(rank))

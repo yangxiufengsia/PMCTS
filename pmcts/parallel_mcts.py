@@ -12,7 +12,7 @@ from threading import Thread, Lock, RLock
 from queue import *
 from collections import deque
 from random import randint
-
+from pmcts.check_ucbpath import backtrack, compare_ucb, update_selection_ucbtable
 from pmcts.search_tree import Tree_Node
 from pmcts.zobrist_hash import Item, HashTable
 from enum import Enum
@@ -261,7 +261,7 @@ class p_mcts:
         timeup = False
         print (status)
         print (rank)
-    
+
         if rank == rootdest:
             root_job_message = np.asarray([['&'], None, 0, 0, 0, []])
             for i in range(3 * nprocs):

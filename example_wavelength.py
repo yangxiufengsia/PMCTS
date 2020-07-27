@@ -21,9 +21,11 @@ if __name__ == "__main__":
     MPI.Attach_buffer(mem)
 
     """
-    Load the pre-trained RNN model
+    Load the pre-trained RNN model and define the property optimized:
+    currently available properties: logP (rdkit) and wavelength (DFT)
     """
     chem_model = loaded_wavelength_model()
+    property="wavelength"
     node=Tree_Node(state=['&'], property=property)
     """
     Initialize HashTable
@@ -32,11 +34,9 @@ if __name__ == "__main__":
     hsm = HashTable(nprocs, node.val, node.max_len, len(node.val))
 
     """
-    Design molecules with desired properties:
-    currently available properties: logP (rdkit) and wavelength (DFT)
+    Design molecules using parallel MCTS: H-MCTS and D-MCTS
     """
     comm.barrier()
-    property="wavelength"
     #score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
     score,mol=p_mcts.D_MCTS(chem_model, hsm, property, comm)
     wcsv(allscore, 'OUTPUT/logp_dmcts_scoreForProcess' + str(rank))

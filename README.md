@@ -11,8 +11,11 @@ The code wast test on Linux and MacOS, we recommend using anaconda to install th
 8. [Networkx](https://anaconda.org/anaconda/networkx)
 9. Gaussian 16 (a commercial software used for wavelength calculations, http://gaussian.com/gaussian16/)
 
-To Run parallel MCTS algorithms example (logp property):
-
+# Run parallel MCTS algorithms for molecular design: logp and wavelength optimization:
+## optimization of logP property
 > mpiexec -n 4 python example_logp.py
+
+## optimization of wavelength property
+> mpiexec -n 4 python example_wavelength.py
 
 > where 4 is the number of cores or processes to use. You can use more cores by changing 4 to 1024 for example.

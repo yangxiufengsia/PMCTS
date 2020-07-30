@@ -20,4 +20,4 @@ The code wast test on Linux and MacOS, we recommend using anaconda to install th
 > where 4 is the number of cores or processes to use. You can use more cores by changing 4 to 1024 for example.
 
 # Implement your own property simulator
->
+> Go to pmcts folder and add your simulator to property_simulator.py

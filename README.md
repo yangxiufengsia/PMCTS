@@ -17,7 +17,7 @@ The code was tested on Linux and MacOS, we recommend using anaconda to install t
 
 ## optimization of wavelength property
 > mpiexec -n 4 python example_wavelength.py
-> where 4 is the number of cores or processes to use. You can use more cores by changing 4 to 1024 for example.
+> where 4 is the number of cores or processes to use. You can use more cores by changing 4 to 1024 for example. The example code used D-MCTS algorithm as default, you can simply change to H-MCTS for your own purpose by checking the source code of example_logp.py.
 
 # Implement your own property simulator
 > Go to pmcts folder and add your simulator to property_simulator.py

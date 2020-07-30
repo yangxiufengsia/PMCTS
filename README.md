@@ -1,15 +1,15 @@
-This project requires installation of following softwares:
 
-1. Platform tested: Linux and MacOS
-2. Python (version 3.7.4)
-3. MPI (openmpi: conda install -c conda-forge openmpi)
-4. mpi4py (version 3.0.3, pip install mpi4py==3.0.3)
-5. RDkit (version >=2019.09.3, conda install -c rdkit rdkit)
-6. Keras (version 2.0.5, pip install keras==2.0.5)
-7. Tensorflow (version 1.15.2, pip install tensorflow==1.15.2)
-8. Nltk (pip install nltk)
-9. Networkx (pip install networkx)
-10. Gaussian 16 (a commercial software used for wavelength calculations, http://gaussian.com/gaussian16/)
+# Requirements
+The code wast test on Linux and MacOS, we recommend using anaconda to install the following softwares.
+1. [Python](https://www.anaconda.com/products/individual)(version 3.7.4)
+2. [MPI](https://anaconda.org/conda-forge/openmpi)
+3. [mpi4py](https://anaconda.org/anaconda/mpi4py)(version 3.0.3)
+4. [RDkit](https://anaconda.org/rdkit/rdkit)
+5. [Keras](https://keras.io/about/)(version 2.0.5)
+6. [Tensorflow](https://www.tensorflow.org/install/pip)(verison 1.15.2)
+7. [Nltk](https://anaconda.org/anaconda/nltk)
+8. [Networkx](https://anaconda.org/anaconda/networkx)
+9. Gaussian 16 (a commercial software used for wavelength calculations, http://gaussian.com/gaussian16/)
 
 To Run parallel MCTS algorithms example (logp property):
 

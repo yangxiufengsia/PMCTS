@@ -11,7 +11,7 @@ The code was tested on Linux and MacOS, we recommend using anaconda to install t
 6. [Tensorflow](https://www.tensorflow.org/install/pip)(verison 1.15.2)
 7. [Nltk](https://anaconda.org/anaconda/nltk)
 8. [Networkx](https://anaconda.org/anaconda/networkx)
-9. [Gaussian 16](http://gaussian.com/gaussian16/) (a commercial software used for wavelength calculations)
+9. [Gaussian 16](http://gaussian.com/gaussian16/) (a commercial quantum simulation software used for wavelength calculations)
 
 # Run parallel MCTS algorithms for molecular design
 ## optimization of logP property

@@ -1,6 +1,6 @@
 
 # Requirements
-The code wast test on Linux and MacOS, we recommend using anaconda to install the following softwares.
+The code was tested on Linux and MacOS, we recommend using anaconda to install the following softwares.
 1. [Python](https://www.anaconda.com/products/individual)(version 3.7.4)
 2. [MPI](https://anaconda.org/conda-forge/openmpi)
 3. [mpi4py](https://anaconda.org/anaconda/mpi4py)(version 3.0.3)

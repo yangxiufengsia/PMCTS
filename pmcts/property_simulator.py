@@ -72,7 +72,7 @@ class simulator:
             score = -1000 / (1 + 1000)
         return score, new_compound[0]
 
-    def wavelength_evaluator(self, new_compound, ind):
+    def wavelength_evaluator(self, new_compound, rank):
         ind=rank
         try:
             m = Chem.MolFromSmiles(str(new_compound[0]))

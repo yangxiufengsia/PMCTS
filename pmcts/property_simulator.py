@@ -3,6 +3,7 @@ from Gaussian_DFT.RDKitText import tansfersdf
 from Gaussian_DFT.SDF2GauInput import GauTDDFT_ForDFT
 from Gaussian_DFT.GaussianRunPack import GaussianDFTRun
 from pmcts import sascorer
+from rdkit import Chem
 from rdkit.Chem import Descriptors
 from rdkit.Chem import MolFromSmiles, MolToSmiles
 from rdkit.Chem import rdmolops
@@ -29,7 +30,7 @@ class simulator:
                 '[O-]', '[n+]', '[N+]', '[CH2]', '[n]']
             self.max_len=42
 
-    def run_simulator(self):
+    def run_simulator(self, new_compound, rank):
         if self.property=="logP":
             score,mol=self.logp_evaluator(new_compound, rank)
         if self.property=="wavelength":

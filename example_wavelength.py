@@ -24,7 +24,7 @@ if __name__ == "__main__":
     Load the pre-trained RNN model and define the property optimized:
     currently available properties: logP (rdkit) and wavelength (DFT)
     """
-    chem_model = loaded_wavelength_model()
+    chem_model = loaded_wave_model()
     property="wavelength"
     node=Tree_Node(state=['&'], property=property)
     """

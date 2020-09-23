@@ -39,6 +39,7 @@ if __name__ == "__main__":
     """
     comm.barrier()
     #score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
-    score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
-    wcsv(allscore, 'OUTPUT/logp_dmcts_scoreForProcess' + str(rank))
-    wcsv(allmol,'OUTPUT/logp_dmcts_generatedMoleculesForProcess' + str(rank))
+    #score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
+    score,mol=p_mcts.tds_df_MCTS(chem_model, hsm, property, comm)
+    wcsv(allscore, 'logp_dmcts_scoreForProcess' + str(rank))
+    wcsv(allmol,'logp_dmcts_generatedMoleculesForProcess' + str(rank))

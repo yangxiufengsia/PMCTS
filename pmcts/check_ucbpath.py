@@ -1,8 +1,8 @@
 from math import log, sqrt
 import numpy as np
 
-def backtrack(pnode, cnode):
-    for path_ucb in reversed(pnode.path_ucb):
+def backtrack(info_table,pnode, cnode):
+    for path_ucb in reversed(info_table):
         ind = path_ucb[0][3]
         path_ucb[0][0] += cnode.reward
         path_ucb[0][1] += 1
@@ -10,10 +10,23 @@ def backtrack(pnode, cnode):
         path_ucb[ind+1][0] += cnode.reward
         path_ucb[ind+1][1] += 1
         path_ucb[ind+1][2] -= 1
-    return pnode
+    return pnode,info_table
 
-def compare_ucb(pnode):
-    for path_ucb in pnode.path_ucb:
+def backtrack_tdsdf(info_table,pnode,cnode):
+    path_ucb=info_table[-1]
+    ind = path_ucb[0][3]
+    path_ucb[0][0] += cnode.reward
+    path_ucb[0][1] += 1
+    path_ucb[0][2] -= 1
+    #path_ucb[ind+1][0] += cnode.reward
+    #path_ucb[ind+1][1] += 1
+    #path_ucb[ind+1][2] -= 1
+    return pnode,info_table
+
+
+def compare_ucb(info_table,pnode):
+    #print ("check info_table:",info_table)
+    for path_ucb in info_table:
         ucb = []
         for i in range(len(path_ucb)-1):
             ind = path_ucb[0][3]
@@ -27,7 +40,7 @@ def compare_ucb(pnode):
             back_flag = 0
     return back_flag
 
-def update_selection_ucbtable(node, ind):
+def update_selection_ucbtable(node_table,node, ind):
     table = []
     final_table = []
     node_info = store_info(node)
@@ -39,7 +52,7 @@ def update_selection_ucbtable(node, ind):
     if node.state == ['&']:
         final_table.append(table)
     else:
-        final_table.extend(node.path_ucb)
+        final_table.extend(node_table)
         final_table.append(table)
     return final_table
 

@@ -1,7 +1,18 @@
 from math import log, sqrt
 import numpy as np
 
-def backtrack(info_table,pnode, cnode):
+def backtrack_tdsdfuctall(info_table,reward):
+    for path_ucb in reversed(info_table):
+        ind = path_ucb[0][3]
+        path_ucb[0][0] += reward
+        path_ucb[0][1] += 1
+        path_ucb[0][2] -= 1
+        path_ucb[ind+1][0] += reward
+        path_ucb[ind+1][1] += 1
+        path_ucb[ind+1][2] -= 1
+    return info_table
+
+def backtrack_mpmctsall(pnode, cnode):
     for path_ucb in reversed(info_table):
         ind = path_ucb[0][3]
         path_ucb[0][0] += cnode.reward
@@ -12,19 +23,10 @@ def backtrack(info_table,pnode, cnode):
         path_ucb[ind+1][2] -= 1
     return pnode,info_table
 
-def backtrack_tdsdf(info_table,pnode,cnode):
-    path_ucb=info_table[-1]
-    ind = path_ucb[0][3]
-    path_ucb[0][0] += cnode.reward
-    path_ucb[0][1] += 1
-    path_ucb[0][2] -= 1
-    #path_ucb[ind+1][0] += cnode.reward
-    #path_ucb[ind+1][1] += 1
-    #path_ucb[ind+1][2] -= 1
-    return pnode,info_table
 
 
-def compare_ucb(info_table,pnode):
+
+def compare_ucball(info_table,pnode):
     #print ("check info_table:",info_table)
     for path_ucb in info_table:
         ucb = []
@@ -39,6 +41,7 @@ def compare_ucb(info_table,pnode):
         else:
             back_flag = 0
     return back_flag
+
 
 def update_selection_ucbtable(node_table,node, ind):
     table = []

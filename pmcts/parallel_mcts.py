@@ -39,7 +39,7 @@ class p_mcts:
     """
     parallel mcts algorithms includes H-MCTS and D-MCTS
     """
-    def tds_df_MCTS(chem_model, hsm, property, comm):
+    def TDS_DF_UCTall(chem_model, hsm, property, comm):
         #comm.barrier()
         rank = comm.Get_rank()
         nprocs = comm.Get_size()
@@ -49,6 +49,8 @@ class p_mcts:
         allscore = []
         allmol = []
         depth=[]
+        bpm=0
+        bp=[]
         _, rootdest = hsm.hashing(['&'])
         jobq = deque()
         timeup = False
@@ -85,7 +87,7 @@ class p_mcts:
                     if hsm.search_table(message[0]) == None:
                         node = Tree_Node(state=message[0], property=property)
                         info_table=message[5]
-                        print ("not in table info_table:",len(node.state),len(info_table), info_table)
+                        #print ("not in table info_table:",info_table)
                         if node.state == ['&']:
                             node.expansion(chem_model)
                             m = random.choice(node.expanded_nodes)
@@ -105,6 +107,8 @@ class p_mcts:
                                 allmol.append(mol)
                                 depth.append(len(node.state))
                                 node.update_local_node(score)
+                                ####update infor table
+                                info_table=backtrack(info_table,score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state, node.reward, node.wins, node.visits,
@@ -114,6 +118,7 @@ class p_mcts:
                             else:
                                 score = -1
                                 node.update_local_node(node, score)
+                                info_table=backtrack(info_table,score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state, node.reward, node.wins, node.visits,
@@ -124,7 +129,7 @@ class p_mcts:
                     else:  # if node already in the local hashtable
                         node = hsm.search_table(message[0])
                         info_table=message[5]
-                        print ("in table info_table:",len(node.state),len(info_table))
+                        #print ("in table info_table:",info_table)
                         if node.state == ['&']:
                             # print ("in table root:",node.state,node.path_ucb,len(node.state),len(node.path_ucb))
                             if node.expanded_nodes != []:
@@ -189,6 +194,8 @@ class p_mcts:
                                     allmol.append(mol)
                                     depth.append(len(node.state))
                                     node.update_local_node(score)
+                                    info_table=backtrack(info_table,score)
+
                                     hsm.insert(Item(node.state, node))
                                     _, dest = hsm.hashing(node.state[0:-1])
                                     comm.bsend(np.asarray([node.state, node.reward, node.wins, node.visits,
@@ -198,6 +205,7 @@ class p_mcts:
                             else:
                                 score = -1
                                 node.update_local_node(score)
+                                info_table=backtrack(info_table,score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state, node.reward, node.wins,
@@ -206,6 +214,7 @@ class p_mcts:
                                                        tag=JobType.BACKPROPAGATION.value)
 
                 elif tag == JobType.BACKPROPAGATION.value:
+                    bpm+=1
                     node = Tree_Node(state=message[0], property=property)
                     node.reward = message[1]
                     local_node = hsm.search_table(message[0][0:-1])
@@ -223,10 +232,9 @@ class p_mcts:
                                                tag=JobType.SEARCH.value)
                     else:
                         local_node.backpropagation(node)
-                        local_node,info_table = backtrack_tdsdf(info_table,local_node, node)
+                        #local_node,info_table = backtrack_tdsdf(info_table,local_node, node)
                         back_flag = compare_ucb(info_table,local_node)
                         hsm.insert(Item(local_node.state, local_node))
-                        print ("back_flag:",back_flag)
                         if back_flag == 1:
                             _, dest = hsm.hashing(local_node.state[0:-1])
                             comm.bsend(np.asarray([local_node.state, local_node.reward, local_node.wins,
@@ -241,8 +249,9 @@ class p_mcts:
                                                    tag=JobType.SEARCH.value)
                 elif tag == JobType.TIMEUP.value:
                     timeup = True
+        bp.append(bpm)
 
-        return allscore, allmol,depth
+        return allscore, allmol,depth,bp
 
     def H_MCTS(chem_model, hsm, property, comm):
         #comm.barrier()

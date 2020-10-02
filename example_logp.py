@@ -35,12 +35,12 @@ if __name__ == "__main__":
     hsm = HashTable(nprocs, node.val, node.max_len, len(node.val))
 
     """
-    Design molecules using parallel MCTS: H-MCTS and D-MCTS
+    Design molecules using parallel MCTS: TDS-UCT,TDS-df-UCT and MP-MCTS
     """
     comm.barrier()
-    #score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
-    #score,mol=p_mcts.H_MCTS(chem_model, hsm, property, comm)
-    score,mol,depth=p_mcts.tds_df_MCTS(chem_model, hsm, property, comm)
+    score,mol=p_mcts.TDS_UCT(chem_model, hsm, property, comm)
+    #score,mol=p_mcts.TDS_df_UCT(chem_model, hsm, property, comm)
+    #score,mol=p_mcts.MP_MCTS(chem_model, hsm, property, comm)
     wcsv(score, 'logp_dmcts_scoreForProcess' + str(rank))
     wcsv(mol,'logp_dmcts_generatedMoleculesForProcess' + str(rank))
-    wcsv(depth,'depth' + str(rank))
+    #wcsv(depth,'depth' + str(rank))

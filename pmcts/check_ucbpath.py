@@ -22,8 +22,7 @@ def backtrack_mpmcts(pnode, cnode):
         path_ucb[ind+1][0] += cnode.reward
         path_ucb[ind+1][1] += 1
         path_ucb[ind+1][2] -= 1
-    return info_table
-
+    return pnode
 
 
 def compare_ucb_tdsdfuct(info_table,pnode):

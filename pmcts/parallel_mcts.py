@@ -12,7 +12,7 @@ from threading import Thread, Lock, RLock
 from queue import *
 from collections import deque
 from random import randint
-from pmcts.check_ucbpath import backtrack_tdsdfuct_top2,backtrack_tdsdfuct_all, backtrack_mpmcts_all,
+from pmcts.check_ucbpath import backtrack_tdsdfuct, backtrack_mpmcts, compare_ucb_tdsdfuct, compare_ucb_mpmcts
 from pmcts.search_tree import Tree_Node
 from pmcts.zobrist_hash import Item, HashTable
 from enum import Enum
@@ -313,7 +313,7 @@ class p_mcts:
                                 depth.append(len(node.state))
                                 node.update_local_node(score)
                                 ####update infor table
-                                info_table=backtrack(info_table,score)
+                                info_table=backtrack_tdsdfuct(info_table,score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state, node.reward, node.wins, node.visits,
@@ -323,7 +323,7 @@ class p_mcts:
                             else:
                                 score = -1
                                 node.update_local_node(node, score)
-                                info_table=backtrack(info_table,score)
+                                info_table=backtrack_tdsdfuct(info_table,score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state, node.reward, node.wins, node.visits,
@@ -349,7 +349,7 @@ class p_mcts:
                             else:
                                 ind, childnode = node.selection()
                                 hsm.insert(Item(node.state, node))
-                                info_table = update_selection_ucbtable(info_table, node, ind)
+                                info_table = update_selection_ucbtable_tdsdfuct(info_table, node, ind)
                                 #print ("info_table after selection:",info_table)
                                 _, dest = hsm.hashing(childnode.state)
                                 comm.bsend(np.asarray([childnode.state, childnode.reward, childnode.wins,
@@ -385,7 +385,7 @@ class p_mcts:
                                         else:
                                             ind, childnode = node.selection()
                                             hsm.insert(Item(node.state, node))
-                                            info_table = update_selection_ucbtable(info_table,node, ind)
+                                            info_table = update_selection_ucbtable_tdsdfuct(info_table,node, ind)
                                             _, dest = hsm.hashing(childnode.state)
                                             comm.bsend(np.asarray([childnode.state, childnode.reward, childnode.wins,
                                                                    childnode.visits, childnode.num_thread_visited, info_table]),
@@ -399,7 +399,7 @@ class p_mcts:
                                     allmol.append(mol)
                                     depth.append(len(node.state))
                                     node.update_local_node(score)
-                                    info_table=backtrack(info_table,score)
+                                    info_table=backtrack_tdsdfuct(info_table,score)
 
                                     hsm.insert(Item(node.state, node))
                                     _, dest = hsm.hashing(node.state[0:-1])
@@ -410,7 +410,7 @@ class p_mcts:
                             else:
                                 score = -1
                                 node.update_local_node(score)
-                                info_table=backtrack(info_table,score)
+                                info_table=backtrack_tdsdfuct(info_table,score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state, node.reward, node.wins,
@@ -438,7 +438,7 @@ class p_mcts:
                     else:
                         local_node.backpropagation(node)
                         #local_node,info_table = backtrack_tdsdf(info_table,local_node, node)
-                        back_flag = compare_ucb(info_table,local_node)
+                        back_flag = compare_ucb_tdsdfuct(info_table,local_node)
                         hsm.insert(Item(local_node.state, local_node))
                         if back_flag == 1:
                             _, dest = hsm.hashing(local_node.state[0:-1])
@@ -551,7 +551,7 @@ class p_mcts:
                             else:
                                 ind, childnode = node.selection()
                                 hsm.insert(Item(node.state, node))
-                                ucb_table = update_selection_ucbtable(node, ind)
+                                ucb_table = update_selection_ucbtable_mpmcts(node, ind)
                                 _, dest = hsm.hashing(childnode.state)
                                 comm.bsend(np.asarray([childnode.state, childnode.reward, childnode.wins,
                                                        childnode.visits, childnode.num_thread_visited,
@@ -585,7 +585,7 @@ class p_mcts:
                                         else:
                                             ind, childnode = node.selection()
                                             hsm.insert(Item(node.state, node))
-                                            ucb_table = update_selection_ucbtable(node, ind)
+                                            ucb_table = update_selection_ucbtable_mpmcts(node, ind)
                                             _, dest = hsm.hashing(childnode.state)
                                             comm.bsend(np.asarray([childnode.state, childnode.reward, childnode.wins,
                                                                    childnode.visits, childnode.num_thread_visited, ucb_table]),
@@ -628,8 +628,8 @@ class p_mcts:
                                                tag=JobType.SEARCH.value)
                     else:
                         local_node.backpropagation(node)
-                        local_node = backtrack(local_node, node)
-                        back_flag = compare_ucb(local_node)
+                        local_node = backtrack_mpmcts(local_node, node)
+                        back_flag = compare_ucb_mpmcts(local_node)
                         hsm.insert(Item(local_node.state, local_node))
                         if back_flag == 1:
                             _, dest = hsm.hashing(local_node.state[0:-1])

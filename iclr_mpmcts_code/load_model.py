@@ -41,7 +41,7 @@ def prepare_data(smiles,all_smile):
 
 
 def loaded_model():
-    json_file = open('/home/yang/riken-projects/sc_chem/RNN-model/model.json', 'r')
+    json_file = open('models/logpmodel/model.json', 'r')
 
     #json_file = open('/home/yang/betadike_model_large/model_all_pub20.json', 'r')
     #json_file = open('/Users/yang/wavemodel/model.json', 'r')
@@ -51,7 +51,7 @@ def loaded_model():
     loaded_model = model_from_json(loaded_model_json)
 
     # load weights into new model
-    loaded_model.load_weights('../models/logp_model/model.h5')
+    loaded_model.load_weights('models/logpmodel/model.h5')
 
     #loaded_model.load_weights('/Users/yang/LSTM-chemical-project/protein-ligand/model.h5')
     #loaded_model.load_weights('/home/yang/betadike_model_large/model_all_pub20.h5')

@@ -41,7 +41,7 @@ if __name__ == "__main__":
     #score,mol=p_mcts.TDS_UCT(chem_model, hsm, property, comm)
     #score,mol=p_mcts.TDS_df_UCT(chem_model, hsm, property, comm)
     score,mol=p_mcts.MP_MCTS(chem_model, hsm, property, comm)
-    print("Done MCTS execution")
+
     result = list(map(lambda x, y:(x,y), score, mol))
     result = sorted(result, key = lambda x: x[0])
     result = result[-3:]

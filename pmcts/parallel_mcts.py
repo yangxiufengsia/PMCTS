@@ -114,7 +114,7 @@ class p_mcts:
                                                        node.num_thread_visited]), dest=dest,tag=JobType.BACKPROPAGATION.value)
                             else:
                                 score = -1
-                                node.update_local_node(node, score)  # backpropagation on local memory
+                                node.update_local_node(score)  # backpropagation on local memory
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state,
@@ -321,7 +321,7 @@ class p_mcts:
                                                        tag=JobType.BACKPROPAGATION.value)
                             else:
                                 score = -1
-                                node.update_local_node(node, score)
+                                node.update_local_node(score)
                                 info_table=backtrack_tdsdfuct(info_table,score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
@@ -526,7 +526,7 @@ class p_mcts:
                                                        tag=JobType.BACKPROPAGATION.value)
                             else:
                                 score = -1
-                                node.update_local_node(node, score)
+                                node.update_local_node(score)
                                 hsm.insert(Item(node.state, node))
                                 _, dest = hsm.hashing(node.state[0:-1])
                                 comm.bsend(np.asarray([node.state, node.reward, node.wins, node.visits,
